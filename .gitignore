@@ -1,0 +1,48 @@
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+eggs/
+*.egg
+
+# Environment files
+.env
+.venv
+venv/
+ENV/
+env/
+
+# IDE files
+.idea/
+*.swp
+*.swo
+*~
+
+# Static file uploads (keep directories, ignore contents)
+static/uploads/*
+static/panels/*
+static/pages/*
+static/audio/*
+static/videos/*
+!static/uploads/.gitkeep
+!static/panels/.gitkeep
+!static/pages/.gitkeep
+!static/audio/.gitkeep
+!static/videos/.gitkeep
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+manga_dubbing.db  # Project database file
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini

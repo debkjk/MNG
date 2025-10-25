@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Manga Dubbing Platform</title>
+    <style>
+      /* Modern CSS Reset */
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      /* Base Styles */
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Oxygen, Ubuntu, Cantarell, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        padding: 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+        background-color: #f8f9fa;
+      }
+
+      /* Typography */
+      h1 {
+        color: #1a73e8;
+        margin-bottom: 0.5rem;
+        font-size: 2.5rem;
+      }
+
+      .subtitle {
+        color: #5f6368;
+        margin-bottom: 2rem;
+        font-size: 1.1rem;
+      }
+
+      /* Card Styling */
+      .card {
+        background: white;
+        border-radius: 8px;
+        padding: 2rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+      }
+
+      /* Form Styling */
+      .form-group {
+        margin-bottom: 1.5rem;
+      }
+
+      input[type="file"] {
+        display: none;
+      }
+
+      .file-input-label {
+        display: inline-block;
+        padding: 0.75rem 1.5rem;
+        background: #1a73e8;
+        color: white;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+
+      .file-input-label:hover {
+        background: #1557b0;
+      }
+
+      .selected-file {
+        margin-top: 0.5rem;
+        color: #5f6368;
+      }
+
+      /* Button Styling */
+      button {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 4px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .btn-primary {
+        background: #1a73e8;
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background: #1557b0;
+      }
+
+      .btn-primary:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+      }
+
+      /* Status Badges */
+      .status-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+      }
+
+      .status-queued {
+        background: #e8eaed;
+        color: #5f6368;
+      }
+
+      .status-processing {
+        background: #fef7e0;
+        color: #b17900;
+      }
+
+      .status-completed {
+        background: #e6f4ea;
+        color: #137333;
+      }
+
+      .status-failed {
+        background: #fce8e6;
+        color: #c5221f;
+      }
+
+      /* Spinner Animation */
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .spinner {
+        display: inline-block;
+        width: 1em;
+        height: 1em;
+        border: 2px solid #ffc107;
+        border-top-color: transparent;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        vertical-align: middle;
+        margin-right: 0.5rem;
+      }
+
+      /* Video Player */
+      .video-container {
+        position: relative;
+        width: 100%;
+        max-width: 1280px;
+        margin: 0 auto;
+        background: #000;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+
+      video {
+        width: 100%;
+        display: block;
+      }
+
+      /* Error Message */
+      .error {
+        color: #c5221f;
+        background: #fce8e6;
+        padding: 1rem;
+        border-radius: 4px;
+        margin: 1rem 0;
+      }
+
+      /* Progress Bar */
+      .progress-container {
+        margin: 1rem 0;
+      }
+
+      .progress-bar {
+        width: 100%;
+        height: 8px;
+        background: #e8eaed;
+        border-radius: 4px;
+        overflow: hidden;
+      }
+
+      .progress-fill {
+        height: 100%;
+        background: #1a73e8;
+        width: 0%;
+        transition: width 0.3s ease;
+      }
+
+      .progress-text {
+        font-size: 0.875rem;
+        color: #5f6368;
+        margin-top: 0.25rem;
+      }
+
+      /* Download Button */
+      .download-btn {
+        display: inline-flex;
+        align-items: center;
+        background: #34a853;
+        color: white;
+        text-decoration: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 4px;
+        margin-top: 1rem;
+      }
+
+      .download-btn:hover {
+        background: #2b8a44;
+      }
+
+      /* Responsive Design */
+      @media (max-width: 768px) {
+        body {
+          padding: 1rem;
+        }
+
+        h1 {
+          font-size: 2rem;
+        }
+
+        .card {
+          padding: 1rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>AI Manga Dubbing Platform</h1>
+      <p class="subtitle">
+        Upload a manga PDF and get an AI-dubbed video with emotional voice
+        acting
+      </p>
+    </header>
+
+    <main>
+      <!-- Upload Section -->
+      <section id="uploadSection" class="card">
+        <h2>Upload Manga PDF</h2>
+        <p>Supported format: PDF | Max size: 50MB</p>
+
+        <form id="uploadForm" class="form-group">
+          <label for="fileInput" class="file-input-label"
+            >Choose PDF File</label
+          >
+          <input type="file" id="fileInput" accept=".pdf" required />
+          <div class="selected-file"></div>
+          <button type="submit" class="btn-primary" disabled>
+            Upload and Process
+          </button>
+          <div id="uploadError" class="error" style="display: none"></div>
+          <div
+            id="uploadProgress"
+            class="progress-container"
+            style="display: none; margin-top: 1rem"
+          >
+            <div class="progress-bar">
+              <div class="progress-fill"></div>
+            </div>
+            <div class="progress-text">0%</div>
+          </div>
+        </form>
+      </section>
+
+      <!-- Status Section -->
+      <section id="statusSection" class="card" style="display: none">
+        <h2>Processing Status</h2>
+        <p>Job ID: <span id="jobId"></span></p>
+        <p>Status: <span id="status" class="status-badge"></span></p>
+        <p>Started: <span id="createdAt"></span></p>
+        <div id="errorMessage" class="error" style="display: none"></div>
+      </section>
+
+      <!-- Video Section -->
+      <section id="videoSection" class="card" style="display: none">
+        <h2>Dubbed Manga Video</h2>
+        <div class="video-container">
+          <video id="videoPlayer" controls></video>
+        </div>
+        <a id="downloadLink" class="download-btn">Download Video</a>
+        <button id="resetButton" class="btn-primary" style="margin-left: 1rem">
+          Process Another Manga
+        </button>
+      </section>
+    </main>
+
+    <script>
+      // DOM Elements
+      const uploadForm = document.getElementById("uploadForm");
+      const fileInput = document.getElementById("fileInput");
+      const selectedFile = document.querySelector(".selected-file");
+      const submitButton = uploadForm.querySelector('button[type="submit"]');
+      const uploadSection = document.getElementById("uploadSection");
+      const statusSection = document.getElementById("statusSection");
+      const videoSection = document.getElementById("videoSection");
+      const jobIdSpan = document.getElementById("jobId");
+      const statusSpan = document.getElementById("status");
+      const createdAtSpan = document.getElementById("createdAt");
+      const errorMessage = document.getElementById("errorMessage");
+      const videoPlayer = document.getElementById("videoPlayer");
+      const downloadLink = document.getElementById("downloadLink");
+      const resetButton = document.getElementById("resetButton");
+
+      // Utility Functions
+      function formatTimestamp(isoString) {
+        return new Date(isoString).toLocaleString();
+      }
+
+      function formatFileSize(bytes) {
+        if (bytes === 0) return "0 B";
+        const k = 1024;
+        const sizes = ["B", "KB", "MB", "GB"];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+      }
+
+      function updateStatusBadge(status) {
+        statusSpan.className = `status-badge status-${status}`;
+        statusSpan.innerHTML =
+          status === "processing"
+            ? '<span class="spinner"></span>Processing'
+            : status.charAt(0).toUpperCase() + status.slice(1);
+      }
+
+      function showError(message) {
+        errorMessage.textContent = message;
+        errorMessage.style.display = "block";
+      }
+
+      // File Input Handler
+      fileInput.addEventListener("change", () => {
+        const file = fileInput.files[0];
+        if (file) {
+          if (file.type !== "application/pdf") {
+            showError("Please select a PDF file");
+            submitButton.disabled = true;
+            return;
+          }
+          if (file.size > 50 * 1024 * 1024) {
+            showError("File size must be less than 50MB");
+            submitButton.disabled = true;
+            return;
+          }
+          selectedFile.textContent = `Selected: ${file.name} (${formatFileSize(
+            file.size
+          )})`;
+          submitButton.disabled = false;
+          errorMessage.style.display = "none";
+        }
+      });
+
+      function showUploadError(message) {
+        const uploadError = document.getElementById("uploadError");
+        uploadError.textContent = message;
+        uploadError.style.display = "block";
+        submitButton.disabled = false;
+      }
+
+      // Upload Form Handler
+      uploadForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        submitButton.disabled = true;
+
+        // Clear any previous errors
+        document.getElementById("uploadError").style.display = "none";
+        errorMessage.style.display = "none";
+
+        const formData = new FormData();
+        formData.append("file", fileInput.files[0]);
+
+        const xhr = new XMLHttpRequest();
+        const progressBar = document.querySelector(".progress-fill");
+        const progressText = document.querySelector(".progress-text");
+        const progressContainer = document.getElementById("uploadProgress");
+
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) {
+            const percentComplete = Math.round((e.loaded / e.total) * 100);
+            progressBar.style.width = percentComplete + "%";
+            progressText.textContent = percentComplete + "%";
+          }
+        };
+
+        xhr.onloadstart = () => {
+          progressContainer.style.display = "block";
+        };
+
+        xhr.onerror = () => {
+          showUploadError("Network error occurred. Please try again.");
+          progressContainer.style.display = "none";
+        };
+
+        xhr.onload = async () => {
+          progressContainer.style.display = "none";
+
+          if (xhr.status === 200 || xhr.status === 201) {
+            try {
+              const data = JSON.parse(xhr.responseText);
+              jobIdSpan.textContent = data.job_id;
+              updateStatusBadge(data.status);
+
+              uploadSection.style.display = "none";
+              statusSection.style.display = "block";
+
+              pollStatus(data.job_id, 0);
+            } catch (error) {
+              showUploadError("Invalid response from server");
+            }
+          } else {
+            showUploadError(
+              `Upload failed: ${xhr.statusText || "Server error"}`
+            );
+          }
+        };
+
+        xhr.open("POST", "/api/upload", true);
+        xhr.send(formData);
+      });
+
+      // Status Polling with retry logic
+      async function pollStatus(jobId, failCount = 0) {
+        const MAX_RETRIES = 5;
+        const MIN_RETRY_DELAY = 10000; // 10 seconds
+        const MAX_RETRY_DELAY = 60000; // 60 seconds
+
+        try {
+          const response = await fetch(`/api/status/${jobId}`);
+          if (!response.ok) {
+            throw new Error(`Failed to get status: ${response.statusText}`);
+          }
+
+          const data = await response.json();
+
+          // Update timestamps from API response
+          if (data.created_at) {
+            createdAtSpan.textContent = formatTimestamp(data.created_at);
+          }
+
+          updateStatusBadge(data.status);
+
+          if (data.status === "completed") {
+            videoPlayer.src = `/${data.video_path}`;
+            downloadLink.href = `/api/download/${jobId}`;
+            videoSection.style.display = "block";
+          } else if (data.status === "failed") {
+            showError(data.error_message || "Processing failed");
+          } else {
+            // Reset fail count on successful response
+            setTimeout(() => pollStatus(jobId, 0), 5000);
+          }
+        } catch (error) {
+          failCount++;
+          if (failCount >= MAX_RETRIES) {
+            showError(
+              "Connection lost. Please check your network and reload the page."
+            );
+            return;
+          }
+
+          // Calculate retry delay with exponential backoff
+          const delay = Math.min(
+            MIN_RETRY_DELAY * Math.pow(2, failCount - 1),
+            MAX_RETRY_DELAY
+          );
+
+          setTimeout(() => pollStatus(jobId, failCount), delay);
+        }
+      }
+
+      // Reset Handler
+      resetButton.addEventListener("click", () => {
+        uploadSection.style.display = "block";
+        statusSection.style.display = "none";
+        videoSection.style.display = "none";
+        fileInput.value = "";
+        selectedFile.textContent = "";
+        submitButton.disabled = true;
+        errorMessage.style.display = "none";
+        videoPlayer.src = "";
+      });
+    </script>
+  </body>
+</html>
