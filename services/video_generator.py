@@ -133,7 +133,7 @@ def create_video_for_page(
                          .with_position((x_offset, y_offset)))
             
             # Add audio
-            audio = AudioFileClip(str(audio_path))
+            audio = AudioFileClip(str(audio_path)).with_start(current_time)
             dialog_clip = dialog_clip.with_audio(audio)
             
             clips.append(dialog_clip)
@@ -161,8 +161,14 @@ def create_video_for_page(
         raise
     finally:
         # Clean up moviepy clips
-        for clip in clips:
-            clip.close()
+        try:
+            for clip in clips:
+                # If the clip has audio, close it first
+                if hasattr(clip, 'audio') and clip.audio is not None:
+                    clip.audio.close()
+                clip.close()
+        except Exception as e:
+            logging.error(f"Error during cleanup: {str(e)}")
 
 def generate_manga_video(
     page_image_path: Path,
