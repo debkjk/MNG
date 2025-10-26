@@ -4,6 +4,7 @@ from pathlib import Path
 import argparse
 import os
 import json
+import re
 from PIL import Image
 from dotenv import load_dotenv
 from services.gemini_service import initialize_gemini_client
@@ -16,7 +17,76 @@ from services.tts_service import (
 # Load environment variables from .env file
 load_dotenv()
 
-def analyze_manga_page(image_path, output_dir=None, page_number=None):
+# Define constants
+CACHE_DIR = Path(__file__).resolve().parent / 'static' / 'cached_responses'
+CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
+# Character voice mappings
+CHARACTER_VOICES = {
+    "Naruto": {
+        "voice_id": "pNInz6obpgDQGcFmaJgB",  # Adam, energetic, young male voice
+        "stability_mod": -0.1,  # More variation for Naruto's emotional style
+        "style_mod": 0.2,      # Stronger emotional emphasis
+        "speed_mod": 0.1       # Slightly faster speech
+    },
+    "Sasuke": {
+        "voice_id": "VR6AewLTigWG4xSOukaG",  # Sam, deep, serious male voice
+        "stability_mod": 0.1,   # More stable for Sasuke's controlled manner
+        "style_mod": -0.1,     # More subtle emotional shifts
+        "speed_mod": -0.05     # Slightly slower, more deliberate speech
+    },
+    "Narrator": {
+        "voice_id": "ThT5KcBeYPX3keUQqHPh",  # Daniel, clear narrative voice
+        "stability_mod": 0.2,   # Very stable for narration
+        "style_mod": -0.2,     # Subtle emotional influence
+        "speed_mod": 0         # Standard speed
+    }
+}
+
+def get_cached_response(image_path):
+    """
+    Try to get cached response for a manga page.
+    """
+    page_name = Path(image_path).stem
+    cache_file = CACHE_DIR / f"{page_name}.json"
+    
+    if cache_file.exists():
+        try:
+            with open(cache_file, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except json.JSONDecodeError:
+            return None
+    return None
+
+def cache_response(image_path, response_data):
+    """
+    Cache the Gemini API response for a manga page.
+    """
+    page_name = Path(image_path).stem
+    cache_file = CACHE_DIR / f"{page_name}.json"
+    
+    with open(cache_file, 'w', encoding='utf-8') as f:
+        json.dump(response_data, f, indent=4, ensure_ascii=False)
+
+def normalize_json_string(json_str):
+    """
+    Normalize JSON string by converting all quotes to double quotes and fixing newlines.
+    """
+    # Replace all single quotes with double quotes, but not within text content
+    normalized = re.sub(r"(?<!\\)'([^']*)':", r'"\1":', json_str)
+    normalized = re.sub(r",\s*'([^']*)':", r',"\1":', normalized)
+    normalized = re.sub(r"{\s*'([^']*)':", r'{\1":', normalized)
+    
+    # Now handle the string values
+    normalized = re.sub(r":\s*'([^']*)'", r':"\1"', normalized)
+    normalized = re.sub(r":\s*'([^']*)'", r':"\1"', normalized)
+    
+    # Fix any escaped newlines
+    normalized = normalized.replace('\\n', ' ')
+    
+    return normalized
+
+def analyze_manga_page(image_path, output_dir=None, page_number=None, use_cache=True):
     """
     Analyze a manga page to determine its type and extract content.
     
@@ -24,6 +94,7 @@ def analyze_manga_page(image_path, output_dir=None, page_number=None):
         image_path: Path to the manga page image
         output_dir: Optional directory for audio output files
         page_number: Optional page number for context
+        use_cache: Whether to try using cached response first
         
     Returns:
         dict: Page analysis results including type and content
@@ -159,7 +230,14 @@ Important:
 3. Include ALL text on the page
 4. Maintain story flow and context"""
 
-    # Send to Gemini for analysis
+    # Try to get cached response first
+    if use_cache:
+        cached_result = get_cached_response(image_path)
+        if cached_result:
+            print("Using cached response...")
+            return cached_result
+
+    # If no cache or cache disabled, send to Gemini for analysis
     print("Sending to Gemini API...")
     response = model.generate_content([prompt, pil_img])
     result = response.text.strip()
@@ -172,8 +250,12 @@ Important:
         if 'json' in result.lower():
             result = result[result.find('{'):]
             
-        # Fix curly quotes that might cause JSON parsing issues
+        # Fix quotes and apostrophes that might cause JSON parsing issues
         result = result.replace('"', '"').replace('"', '"')
+        result = result.replace('"S', "'S").replace('"s', "'s")
+        result = result.replace('"T', "'T").replace('"t', "'t")
+        result = result.replace('"M', "'M").replace('"m', "'m")
+        result = result.replace('"L', "'L").replace('"l', "'l")
         
         data = json.loads(result)
         print("\nExtracted dialogs in reading order:")
@@ -184,13 +266,24 @@ Important:
             print("\nGenerating audio files...")
             for dialog in data['dialogs']:
                 audio_path = Path(output_dir) / f"dialog_{dialog['sequence']:02d}.mp3"
+                # Get character voice settings
+                char_voice = CHARACTER_VOICES.get(dialog['speaker'], CHARACTER_VOICES['Narrator'])
+                
+                # Adjust emotion parameters based on character settings
+                dialog['emotion']['stability'] = max(0.1, min(0.9, 
+                    dialog['emotion']['stability'] + char_voice['stability_mod']))
+                dialog['emotion']['style'] = max(0.1, min(0.9, 
+                    dialog['emotion']['style'] + char_voice['style_mod']))
+                dialog['speech']['speed'] = max(0.5, min(2.0, 
+                    float(dialog['speech']['speed']) + char_voice['speed_mod']))
+                
                 generate_dialogue_audio(
                     tts_client,
                     dialog,
-                    os.getenv("ELEVENLABS_VOICE_ID"),
+                    char_voice['voice_id'],
                     audio_path
                 )
-                print(f"Generated: dialog_{dialog['sequence']:02d}.mp3")
+                print(f"Generated: dialog_{dialog['sequence']:02d}.mp3 for {dialog['speaker']}")
         
             # Generate audio if output directory specified
             if output_dir:
@@ -216,6 +309,11 @@ Important:
         print(f"Error: {str(e)}")
         print(f"Raw response: {result}")
         return None
+
+    # If successful, cache the response
+    if use_cache:
+        cache_response(image_path, result)
+    return result
 
 def process_sequential_pages(directory_path, output_dir=None):
     """

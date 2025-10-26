@@ -5,6 +5,7 @@ from pathlib import Path
 import json
 import logging
 import os
+import re
 from typing import List, Dict, Any, Optional
 import time
 import functools
@@ -12,6 +13,37 @@ import functools
 # Configuration
 PANELS_DIR = Path(__file__).resolve().parent.parent / 'static' / 'panels'
 PANELS_DIR.mkdir(parents=True, exist_ok=True)
+
+def normalize_json_string(json_str):
+    """
+    Normalize JSON string by converting all quotes to double quotes and fixing newlines.
+    """
+    # First pass - normalize all basic quote patterns
+    patterns = [
+        (r"'([^']*)':", r'"\1":'),  # Keys
+        (r":\s*'([^']*)'([,}])", r':"\1"\2'),  # Values
+        (r"'([^']*)'", r'"\1"'),  # Any remaining quotes
+    ]
+    
+    normalized = json_str
+    for pattern, replacement in patterns:
+        normalized = re.sub(pattern, replacement, normalized)
+    
+    # Second pass - handle any nested structures
+    try:
+        # Test if it's valid JSON now
+        json.loads(normalized)
+    except json.JSONDecodeError:
+        # If still invalid, try more aggressive normalization
+        normalized = normalized.replace("'", '"')
+        normalized = re.sub(r'"([^"]*)":', r'"\1":', normalized)  # Fix any doubled quotes in keys
+        normalized = re.sub(r':\s*"([^"]*)"([,}])', r':"\1"\2', normalized)  # Fix any doubled quotes in values
+        
+    # Clean up newlines and whitespace
+    normalized = re.sub(r'\s+', ' ', normalized)
+    normalized = normalized.replace('\\n', ' ')
+    
+    return normalized
 
 def retry_with_backoff(max_retries=3, initial_delay=1):
     """Decorator for API call retry logic with exponential backoff."""
@@ -153,15 +185,33 @@ def analyze_manga_page(page_image_path: Path, page_number: int, job_id: str) -> 
         # Print response for debugging
         logging.info(f"Raw Gemini response for page {page_number}: {response.text}")
         
-        # Try to extract JSON from the response text
-        # First, try to find JSON between ``` marks
+        # Clean and normalize the response text first
         json_text = response.text
-        if '```json' in response.text:
-            json_text = response.text.split('```json')[1].split('```')[0].strip()
-        elif '```' in response.text:
-            json_text = response.text.split('```')[1].split('```')[0].strip()
+        
+        # Strip any markdown code blocks
+        if '```json' in json_text:
+            json_text = json_text.split('```json')[1].split('```')[0].strip()
+        elif '```' in json_text:
+            json_text = json_text.split('```')[1].split('```')[0].strip()
             
-        result = json.loads(json_text)
+        # First pass - fix quotes and basic structure
+        json_text = json_text.replace("'", '"')  # Replace all single quotes
+        
+        # Fix escaping and special characters
+        json_text = re.sub(r'(?<!\\)"', '\\"', json_text)  # Escape unescaped double quotes
+        json_text = re.sub(r'\\+"', '"', json_text)  # Fix over-escaped quotes
+        
+        # Clean up newlines and extra whitespace
+        json_text = re.sub(r'\s+', ' ', json_text)
+        
+        try:
+            # Try parsing the cleaned JSON
+            result = json.loads(json_text)
+        except json.JSONDecodeError:
+            # If still invalid, try more aggressive cleaning
+            json_text = re.sub(r'([{,])\s*"([^"]+)"\s*:', r'\1"\2":', json_text)  # Fix key format
+            json_text = re.sub(r':\s*"([^"]+)"([,}])', r':"\1"\2', json_text)  # Fix value format
+            result = json.loads(json_text)
         
         # Handle non-story pages
         if result.get('page_type') == 'non_story':
