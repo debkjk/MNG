@@ -7,15 +7,27 @@ import os
 from datetime import datetime
 from pathlib import Path
 from database import init_db
+from contextlib import asynccontextmanager
 
 # Load environment variables
 load_dotenv()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan handler for database initialization and cleanup."""
+    # Startup
+    init_db()
+    print("Database initialized successfully")
+    yield
+    # Shutdown
+    # Add any cleanup code here if needed
 
 # Initialize FastAPI app
 app = FastAPI(
     title="AI Manga Dubbing Platform",
     version="1.0.0",
-    description="An AI-powered platform for automatically converting manga PDFs into dubbed videos using Gemini and ElevenLabs"
+    description="An AI-powered platform for automatically converting manga PDFs into dubbed videos using Gemini and ElevenLabs",
+    lifespan=lifespan
 )
 
 # Configure CORS
@@ -63,12 +75,18 @@ async def health_check():
         "timestamp": datetime.utcnow().isoformat()
     }
 
-# Database initialization event
-@app.on_event("startup")
-async def startup_event():
-    """Initialize database on application startup."""
+# Database initialization using lifespan handler
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan handler for database initialization and cleanup."""
+    # Startup
     init_db()
     print("Database initialized successfully")
+    yield
+    # Shutdown
+    # Add any cleanup code here if needed
 
 # Import and include routers
 from routers import upload, process, download

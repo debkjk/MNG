@@ -87,21 +87,35 @@ def initialize_gemini_client():
 
 def create_analysis_prompt() -> str:
     """Create the comprehensive prompt for manga page analysis."""
-    return """Analyze this manga page and return a structured JSON response with four unified tasks:
+    return """Your task is to analyze this manga page and return ONLY a JSON object. First, determine if this is a story page or a title/intro/outro page.
 
-1. Panel Detection: Identify all manga panels with accurate pixel coordinates
+PAGE CLASSIFICATION:
+1. Story pages: Contains sequential narrative panels with character dialogue/action
+2. Non-story pages: Title pages, chapter covers, credits, advertisements, etc.
+
+For non-story pages, return:
+{
+    "page_type": "non_story",
+    "type_details": "title_page|chapter_cover|credits|advertisement",
+    "panels": []
+}
+
+For story pages, analyze the following:
+1. Story Panel Detection: 
+   - Only include panels that advance the story
+   - Must contain character actions, dialogue, or important plot elements
+   - Ignore decorative borders, background elements, or non-story art
 2. Reading Order: Japanese manga reads right-to-left, top-to-bottom
-3. Dialogue Extraction: Extract text from speech bubbles, thought bubbles, and narration
-4. Emotion Detection: Classify dialogue emotions
+3. Dialogue Extraction: From speech bubbles, thought bubbles, and narration
+4. Emotion Detection: For character dialogue
 
-Rules:
-- Bounding boxes must use exact pixel coordinates
-- Reading order starts at 1 and increases sequentially
-- Exclude sound effects from dialogue
-- For panels without dialogue, include empty dialogues array
-- Use visual separation for overlapping panels
+Critical Requirements:
+- Return pure JSON without any markdown or extra text
+- Use integer coordinates for bounding boxes
+- Only extract actual story panels
+- Skip purely decorative elements
 
-Return JSON in this exact format:
+For story pages, use this JSON structure:
 {
   "panels": [
     {
@@ -135,11 +149,35 @@ def analyze_manga_page(page_image_path: Path, page_number: int, job_id: str) -> 
     try:
         # Generate analysis
         response = model.generate_content([prompt, image])
-        result = json.loads(response.text)
         
-    except json.JSONDecodeError:
-        # Retry once with clarified prompt
-        response = model.generate_content([prompt + "\nEnsure response is valid JSON.", image])
+        # Print response for debugging
+        logging.info(f"Raw Gemini response for page {page_number}: {response.text}")
+        
+        # Try to extract JSON from the response text
+        # First, try to find JSON between ``` marks
+        json_text = response.text
+        if '```json' in response.text:
+            json_text = response.text.split('```json')[1].split('```')[0].strip()
+        elif '```' in response.text:
+            json_text = response.text.split('```')[1].split('```')[0].strip()
+            
+        result = json.loads(json_text)
+        
+        # Handle non-story pages
+        if result.get('page_type') == 'non_story':
+            logging.info(f"Page {page_number} identified as {result.get('type_details')} - skipping panel extraction")
+            return {
+                'page_number': page_number,
+                'page_type': result.get('page_type'),
+                'type_details': result.get('type_details'),
+                'panels': []
+            }
+        
+    except json.JSONDecodeError as e:
+        logging.error(f"JSON parsing error for page {page_number}: {e}\nResponse text: {response.text}")
+        # Retry with explicit JSON request
+        clarified_prompt = prompt + "\nIMPORTANT: Response must be valid JSON without any markdown code blocks or additional text."
+        response = model.generate_content([clarified_prompt, image])
         result = json.loads(response.text)
         
     except genai.types.BlockedPromptException as e:
@@ -171,6 +209,10 @@ def extract_panel_images(
     page_number: int
 ) -> List[Path]:
     """Extract individual panel images based on analysis results."""
+    # Skip if this is a non-story page
+    if analysis_result.get('page_type') == 'non_story':
+        return []
+        
     job_panels_dir = PANELS_DIR / job_id
     job_panels_dir.mkdir(parents=True, exist_ok=True)
     panel_paths = []
@@ -182,14 +224,29 @@ def extract_panel_images(
         # Sort panels by reading order
         panels = sorted(analysis_result.get('panels', []), key=lambda p: p['reading_order'])
         
+        # Calculate minimum panel size thresholds
+        min_width = width * 0.1  # Panel must be at least 10% of page width
+        min_height = height * 0.1  # Panel must be at least 10% of page height
+        
         for panel in panels:
             try:
                 bbox = panel['bounding_box']
                 x, y = max(0, bbox['x']), max(0, bbox['y'])
                 w, h = min(width - x, bbox['width']), min(height - y, bbox['height'])
                 
-                if w <= 0 or h <= 0:
-                    logging.warning(f"Invalid panel dimensions for page {page_number}, panel {panel['reading_order']}")
+                # Skip panels that are too small (likely decorative elements)
+                if w < min_width or h < min_height:
+                    logging.info(f"Skipping small panel on page {page_number}, panel {panel['reading_order']} ({w}x{h})")
+                    continue
+                    
+                # Skip panels that take up almost the entire page (likely background)
+                if w > width * 0.95 and h > height * 0.95:
+                    logging.info(f"Skipping full-page panel on page {page_number}, panel {panel['reading_order']}")
+                    continue
+                
+                # Skip panels without any dialogue (unless it's explicitly marked as important)
+                if not panel.get('dialogues') and not panel.get('is_important', False):
+                    logging.info(f"Skipping panel without dialogue on page {page_number}, panel {panel['reading_order']}")
                     continue
                 
                 # Crop and save panel
