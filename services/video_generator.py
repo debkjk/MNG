@@ -1,11 +1,13 @@
-import ffmpeg
-from pathlib import Path
 import logging
-import os
-import shutil
+import numpy as np
+from pathlib import Path
+from PIL import Image, ImageDraw
 from typing import List, Dict, Any
-from services.pdf_processor import cleanup_page_images
-from services.tts_service import cleanup_audio_files
+import json
+import moviepy
+from moviepy.video.VideoClip import ColorClip, ImageClip, VideoClip
+from moviepy.video.compositing.CompositeVideoClip import CompositeVideoClip
+from moviepy.audio.io.AudioFileClip import AudioFileClip
 
 # Configure paths and directories
 VIDEOS_DIR = Path(__file__).resolve().parent.parent / 'static' / 'videos'
@@ -20,137 +22,187 @@ AUDIO_CODEC = 'aac'  # AAC audio codec
 AUDIO_BITRATE = '192k'  # High quality audio
 PIXEL_FORMAT = 'yuv420p'  # Standard pixel format for compatibility
 
+# Dialog visual settings
+HIGHLIGHT_OPACITY = 0.3  # Opacity of dialog highlight
+HIGHLIGHT_COLOR = (255, 255, 0)  # Yellow highlight
+DIALOG_PADDING = 0.2  # Seconds of padding between dialogs
+
 def get_audio_duration(audio_path: Path) -> float:
-    """Get duration of audio file in seconds using ffmpeg probe."""
+    """Get duration of audio file in seconds."""
     try:
-        probe = ffmpeg.probe(str(audio_path))
-        duration = float(probe['format']['duration'])
-        logging.info(f"Detected audio duration: {duration:.2f} seconds")
-        return duration
+        with AudioFileClip(str(audio_path)) as audio:
+            return audio.duration
     except Exception as e:
-        logging.error(f"Failed to probe audio file {audio_path}: {str(e)}")
+        logging.error(f"Failed to get audio duration for {audio_path}: {str(e)}")
         raise
 
-def collect_panel_paths(analysis_results: Dict[str, Any]) -> List[Path]:
-    """Extract and validate panel paths in reading order."""
-    panel_paths = []
+def create_dialog_highlight(image: Image, dialog_position: Dict[str, str], opacity: float = HIGHLIGHT_OPACITY) -> Image:
+    """Create a semi-transparent highlight for the current dialog."""
+    highlight = Image.new('RGBA', image.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(highlight)
     
-    for page in analysis_results["pages"]:
-        for panel in sorted(page["panels"], key=lambda p: p["reading_order"]):
-            panel_path = Path(panel["panel_path"])
-            if panel_path.exists():
-                panel_paths.append(panel_path)
-            else:
-                logging.warning(f"Panel image not found: {panel_path}")
-    
-    if not panel_paths:
-        raise ValueError("No valid panel images found in analysis results")
-    
-    logging.info(f"Collected {len(panel_paths)} panel paths in reading order")
-    return panel_paths
-
-def generate_video(panel_paths: List[Path], audio_path: Path, output_path: Path) -> bool:
-    """Generate video from panel images synchronized with audio."""
-    try:
-        # Validate inputs
-        if not panel_paths:
-            raise ValueError("No panel paths provided")
-        if not audio_path.exists():
-            raise ValueError(f"Audio file not found: {audio_path}")
+    # Calculate highlight position based on dialog position
+    w, h = image.size
+    if dialog_position['vertical'] == 'top':
+        y1, y2 = 0, h//3
+    elif dialog_position['vertical'] == 'middle':
+        y1, y2 = h//3, 2*h//3
+    else:  # bottom
+        y1, y2 = 2*h//3, h
         
-        # Get audio duration and calculate timing
-        audio_duration = get_audio_duration(audio_path.resolve().as_posix())
-        per_panel_duration = round(audio_duration / len(panel_paths), 3)
-        per_panel_duration = max(per_panel_duration, 0.05)  # Ensure minimum duration
+    if dialog_position['horizontal'] == 'left':
+        x1, x2 = 0, w//3
+    elif dialog_position['horizontal'] == 'center':
+        x1, x2 = w//3, 2*w//3
+    else:  # right
+        x1, x2 = 2*w//3, w
+        
+    # Draw highlight rectangle
+    color = (*HIGHLIGHT_COLOR, int(255 * opacity))
+    draw.rectangle([x1, y1, x2, y2], fill=color)
+    
+    return Image.alpha_composite(image.convert('RGBA'), highlight)
 
-        # Create video segments for each panel
-        video_segments = []
-        for i, panel_path in enumerate(panel_paths):
-            panel_posix = panel_path.resolve().as_posix()
-            # For last panel, absorb any rounding residue
-            if i == len(panel_paths) - 1:
-                segment_duration = max(per_panel_duration, 
-                                    audio_duration - per_panel_duration * (len(panel_paths) - 1))
-            else:
-                segment_duration = per_panel_duration
-            # Create input stream with scaling and padding
-            segment = (
-                ffmpeg
-                .input(panel_posix, loop=1, t=segment_duration)
-                .filter('scale', VIDEO_WIDTH, VIDEO_HEIGHT, force_original_aspect_ratio='decrease')
-                .filter('pad', VIDEO_WIDTH, VIDEO_HEIGHT, '(ow-iw)/2', '(oh-ih)/2', color='black')
-            )
-            video_segments.append(segment)
-
-        # Concatenate video segments and add audio
-        concat_node = ffmpeg.concat(*video_segments, v=1, a=0, n=len(video_segments)).node
-        video = concat_node[0]
-        audio = ffmpeg.input(audio_path.resolve().as_posix()).audio
-
-        # Generate final video with audio
-        (
-            ffmpeg
-            .output(
-                video,
-                audio,
-                output_path.resolve().as_posix(),
-                vcodec=VIDEO_CODEC,
-                pix_fmt=PIXEL_FORMAT,
-                r=VIDEO_FPS,
-                acodec=AUDIO_CODEC,
-                shortest=None,  # Stop when audio ends
-                movflags='+faststart',  # Enable streaming
-                **{'b:a': AUDIO_BITRATE}
-            )
-            .overwrite_output()
-            .run(quiet=False)
+def create_video_for_page(
+    page_image_path: Path,
+    dialogs: List[Dict[str, Any]],
+    audio_dir: Path,
+    output_path: Path
+) -> None:
+    """
+    Create a video from a manga page with timed dialog highlights and audio.
+    
+    Args:
+        page_image_path: Path to the manga page image
+        dialogs: List of dialog entries with timing and position info
+        audio_dir: Directory containing generated audio files
+        output_path: Path where the output video will be saved
+    """
+    try:
+        # Load the page image
+        page_image = Image.open(page_image_path)
+        
+        # Resize image to maintain aspect ratio within VIDEO_WIDTH/HEIGHT
+        aspect_ratio = page_image.width / page_image.height
+        if aspect_ratio > VIDEO_WIDTH / VIDEO_HEIGHT:
+            new_width = VIDEO_WIDTH
+            new_height = int(VIDEO_WIDTH / aspect_ratio)
+        else:
+            new_height = VIDEO_HEIGHT
+            new_width = int(VIDEO_HEIGHT * aspect_ratio)
+            
+        page_image = page_image.resize((new_width, new_height), Image.Resampling.LANCZOS)
+        
+        # Background is already created above
+        
+        # Calculate image position to center it
+        x_offset = (VIDEO_WIDTH - new_width) // 2
+        y_offset = (VIDEO_HEIGHT - new_height) // 2
+        
+        # Create base clip with the page image
+        base_image = np.array(page_image)
+        current_time = 0
+        
+        # Calculate total duration from all dialogs
+        total_duration = sum([get_audio_duration(audio_dir / f"dialog_{d['sequence']:03d}.mp3") + DIALOG_PADDING for d in dialogs])
+        
+        # Create base clip with the page image
+        base_clip = ImageClip(base_image).with_position((x_offset, y_offset)).with_duration(total_duration)
+        background = ColorClip((VIDEO_WIDTH, VIDEO_HEIGHT), color=(0, 0, 0)).with_duration(total_duration)
+        
+        # Process each dialog
+        clips = [background, base_clip]
+        
+        for dialog in dialogs:
+            # Get audio file for this dialog
+            audio_path = audio_dir / f"dialog_{dialog['sequence']:03d}.mp3"
+            if not audio_path.exists():
+                raise FileNotFoundError(f"Audio file not found: {audio_path}")
+            
+            # Get audio duration
+            duration = get_audio_duration(audio_path)
+            
+            # Create highlighted image for this dialog
+            highlighted_image = create_dialog_highlight(page_image, dialog['position'])
+            highlighted_array = np.array(highlighted_image)
+            
+            # Create clip for this dialog
+            dialog_clip = (ImageClip(highlighted_array)
+                         .with_start(current_time)
+                         .with_duration(duration)
+                         .with_position((x_offset, y_offset)))
+            
+            # Add audio
+            audio = AudioFileClip(str(audio_path))
+            dialog_clip = dialog_clip.with_audio(audio)
+            
+            clips.append(dialog_clip)
+            current_time += duration + DIALOG_PADDING
+        
+        # Background is already added to clips with correct duration
+        
+        # Combine all clips
+        final_clip = CompositeVideoClip(clips)
+        
+        # Write the final video
+        final_clip.write_videofile(
+            str(output_path),
+            fps=VIDEO_FPS,
+            codec=VIDEO_CODEC,
+            audio_codec=AUDIO_CODEC,
+            audio_bitrate=AUDIO_BITRATE,
+            logger=None  # Disable moviepy's verbose logging
         )
         
-        logging.info(f"Successfully generated video: {output_path}")
-        return True
+        logging.info(f"Successfully created video: {output_path}")
         
     except Exception as e:
-        logging.error(f"Failed to generate video: {str(e)}")
-        return False
+        logging.error(f"Failed to create video: {str(e)}")
+        raise
+    finally:
+        # Clean up moviepy clips
+        for clip in clips:
+            clip.close()
 
-def cleanup_temporary_files(job_id: str, keep_merged_audio: bool = True) -> None:
-    """Clean up temporary files after successful video generation."""
+def generate_manga_video(
+    page_image_path: Path,
+    dialogs_json_path: Path,
+    audio_dir: Path,
+    output_dir: Path = VIDEOS_DIR
+) -> Path:
+    """
+    Generate a video from a manga page with synchronized audio and visual dialog indicators.
+    
+    Args:
+        page_image_path: Path to the manga page image
+        dialogs_json_path: Path to the JSON file containing dialog data
+        audio_dir: Directory containing the generated audio files
+        output_dir: Directory where the output video will be saved
+    
+    Returns:
+        Path to the generated video file
+    """
     try:
-        cleanup_page_images(job_id)
-        cleanup_audio_files(job_id, keep_merged=keep_merged_audio)
-        logging.info(f"Cleaned up temporary files for job {job_id}")
+        # Load dialog data
+        with open(dialogs_json_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        # Create output filename based on page number or image name
+        output_filename = f"manga_page_{Path(page_image_path).stem}.mp4"
+        output_path = output_dir / output_filename
+        
+        # Generate the video
+        create_video_for_page(
+            page_image_path=page_image_path,
+            dialogs=data['dialogs'],
+            audio_dir=audio_dir,
+            output_path=output_path
+        )
+        
+        return output_path
+        
     except Exception as e:
-        logging.error(f"Error during cleanup for job {job_id}: {str(e)}")
+        logging.error(f"Failed to generate manga video: {str(e)}")
+        raise
 
-def create_manga_video(analysis_results: Dict[str, Any], job_id: str) -> str:
-    """Create video from manga panels with synchronized audio."""
-    try:
-        # Prepare output directory
-        job_videos_dir = VIDEOS_DIR / job_id
-        job_videos_dir.mkdir(parents=True, exist_ok=True)
-        video_path = job_videos_dir / 'final_video.mp4'
-        
-        logging.info(f"Starting video generation for job {job_id}")
-        
-        # Collect resources
-        panel_paths = collect_panel_paths(analysis_results)
-        merged_audio_path = Path(analysis_results['merged_audio_path'])
-        if not merged_audio_path.exists():
-            raise ValueError(f"Merged audio file not found: {merged_audio_path}")
-        
-        # Generate video
-        if not generate_video(panel_paths, merged_audio_path, video_path):
-            raise RuntimeError("Video generation failed")
-        
-        # Clean up temporary files
-        cleanup_temporary_files(job_id, keep_merged_audio=True)
-        
-        # Return relative path for database storage
-        relative_path = f'static/videos/{job_id}/final_video.mp4'
-        logging.info(f"Video generation completed. Path: {relative_path}")
-        return relative_path
-        
-    except Exception as e:
-        error_msg = f"Failed to create video for job {job_id}: {str(e)}"
-        logging.error(error_msg)
-        raise RuntimeError(error_msg)
+# End of video generation functions

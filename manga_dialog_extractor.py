@@ -9,7 +9,7 @@ from PIL import Image
 from dotenv import load_dotenv
 from services.gemini_service import initialize_gemini_client
 from services.tts_service import (
-    initialize_elevenlabs_client, 
+    initialize_elevenlabs,
     generate_dialogue_audio,
     AUDIO_DIR
 )
@@ -86,6 +86,33 @@ def normalize_json_string(json_str):
     
     return normalized
 
+def generate_audio_for_dialogs(dialogs, output_dir):
+    """
+    Generate audio for each dialog using character-specific voices.
+    
+    Args:
+        dialogs: List of dialog entries with text, speaker, and emotion
+        output_dir: Directory to save audio files
+    """
+    initialize_elevenlabs()
+    
+    for idx, dialog in enumerate(dialogs, 1):
+        print(f"\nGenerating audio for dialog {idx}/{len(dialogs)}")
+        print(f"Speaker: {dialog['speaker']}")
+        print(f"Text: {dialog['text'][:50]}...")
+        
+        # Create output path for this dialog
+        audio_path = Path(output_dir) / f"dialog_{idx:03d}.mp3"
+        
+        try:
+            generate_dialogue_audio(
+                dialogue=dialog,
+                output_path=audio_path
+            )
+            print(f"Saved audio to: {audio_path}")
+        except Exception as e:
+            print(f"Error generating audio for dialog {idx}: {str(e)}")
+
 def analyze_manga_page(image_path, output_dir=None, page_number=None, use_cache=True):
     """
     Analyze a manga page to determine its type and extract content.
@@ -113,10 +140,9 @@ def analyze_manga_page(image_path, output_dir=None, page_number=None, use_cache=
     # Initialize Gemini client
     model = initialize_gemini_client()
     
-    # Initialize text-to-speech client if needed
-    tts_client = None
+    # Initialize text-to-speech if needed
     if output_dir:
-        tts_client = initialize_elevenlabs_client()
+        initialize_elevenlabs()
     
     # Create prompt for page type and dialog analysis
     prompt = """Analyze this manga page and determine its type and content. Return a JSON object with page classification and dialogs.
@@ -262,39 +288,16 @@ Important:
         print(json.dumps(data, indent=2))
         
         # Generate audio if output directory specified
-        if output_dir and tts_client:
+        if output_dir:
             print("\nGenerating audio files...")
             for dialog in data['dialogs']:
                 audio_path = Path(output_dir) / f"dialog_{dialog['sequence']:02d}.mp3"
-                # Get character voice settings
-                char_voice = CHARACTER_VOICES.get(dialog['speaker'], CHARACTER_VOICES['Narrator'])
-                
-                # Adjust emotion parameters based on character settings
-                dialog['emotion']['stability'] = max(0.1, min(0.9, 
-                    dialog['emotion']['stability'] + char_voice['stability_mod']))
-                dialog['emotion']['style'] = max(0.1, min(0.9, 
-                    dialog['emotion']['style'] + char_voice['style_mod']))
-                dialog['speech']['speed'] = max(0.5, min(2.0, 
-                    float(dialog['speech']['speed']) + char_voice['speed_mod']))
                 
                 generate_dialogue_audio(
-                    tts_client,
                     dialog,
-                    char_voice['voice_id'],
                     audio_path
                 )
                 print(f"Generated: dialog_{dialog['sequence']:02d}.mp3 for {dialog['speaker']}")
-        
-            # Generate audio if output directory specified
-            if output_dir:
-                audio_path = Path(output_dir) / f"dialog_{dialog['sequence']:02d}.mp3"
-                generate_dialogue_audio(
-                    tts_client,
-                    dialog,
-                    os.getenv("ELEVENLABS_VOICE_ID"),
-                    audio_path
-                )
-                print(f"Generated audio: {audio_path}")
         
         # Save the extracted data
         output_json = Path(image_path).with_suffix('.json')
@@ -370,6 +373,12 @@ def main():
         if result:
             print("\nFinal Analysis:")
             print(json.dumps(result, indent=2, ensure_ascii=False))
+            
+            # Generate audio if this is a story page with dialogs
+            if result.get('page_type') == 'story' and result.get('dialogs'):
+                print("\nGenerating audio for dialogs...")
+                page_dir = Path(args.output) if args.output else Path(args.file).parent
+                generate_audio_for_dialogs(result['dialogs'], page_dir)
     else:
         # Process directory of pages
         results = process_sequential_pages(args.directory, args.output)

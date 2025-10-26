@@ -1,4 +1,4 @@
-from elevenlabs import ElevenLabs, VoiceSettings
+from elevenlabs.client import ElevenLabs
 import ffmpeg
 from pathlib import Path
 import logging
@@ -14,7 +14,6 @@ AUDIO_DIR.mkdir(parents=True, exist_ok=True)
 
 # Constants
 DEFAULT_VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID", "EXAVITQu4vr4xnSDxMaL")  # Sarah voice
-OUTPUT_FORMAT = "mp3_44100_128"  # 44.1 kHz, 128 kbps MP3
 MODEL_ID = "eleven_multilingual_v2"
 
 def map_emotion_to_text_prefix(emotion: str, speaker: str) -> str:
@@ -31,34 +30,77 @@ def map_emotion_to_text_prefix(emotion: str, speaker: str) -> str:
     
     return emotion_map.get(emotion.lower(), "")
 
-def initialize_elevenlabs_client() -> ElevenLabs:
-    """Initialize and validate ElevenLabs client."""
+def initialize_elevenlabs():
+    """Initialize and validate ElevenLabs API."""
     api_key = os.getenv("ELEVENLABS_API_KEY")
     if not api_key:
         raise ValueError("ELEVENLABS_API_KEY environment variable is not set")
     
     try:
-        client = ElevenLabs(api_key=api_key)
-        return client
+        return ElevenLabs(api_key=api_key)
     except Exception as e:
-        logging.error(f"Failed to initialize ElevenLabs client: {str(e)}")
+        logging.error(f"Failed to initialize ElevenLabs: {str(e)}")
         raise
 
-def get_voice_settings(emotion: str) -> VoiceSettings:
-    """Get emotion-tuned voice settings."""
-    settings_map = {
-        "happy": VoiceSettings(stability=0.4, similarity_boost=0.75, style=0.3, speed=1.1),
-        "excited": VoiceSettings(stability=0.4, similarity_boost=0.75, style=0.3, speed=1.1),
-        "sad": VoiceSettings(stability=0.6, similarity_boost=0.8, style=0.2, speed=0.9),
-        "scared": VoiceSettings(stability=0.6, similarity_boost=0.8, style=0.2, speed=0.9),
-        "angry": VoiceSettings(stability=0.3, similarity_boost=0.7, style=0.4, speed=1.0),
-        "neutral": VoiceSettings(stability=0.5, similarity_boost=0.75, style=0.0, speed=1.0),
-        "surprised": VoiceSettings(stability=0.5, similarity_boost=0.75, style=0.0, speed=1.0)
-    }
+def get_voice_settings(emotion_data: Dict[str, Any], character: str) -> dict:
+    """
+    Get emotion and character-tuned voice settings.
     
-    settings = settings_map.get(emotion.lower(), settings_map["neutral"])
-    settings.use_speaker_boost = True
-    return settings
+    Args:
+        emotion_data: Dictionary containing emotion parameters
+        character: The character speaking (e.g., 'Naruto', 'Sasuke', 'Narrator')
+    """
+    # Base settings from emotion type
+    emotion_type = emotion_data.get('type', 'neutral').lower()
+    base_settings = {
+        "happy": {"stability": 0.4, "style": 0.3, "speed": 1.1},
+        "excited": {"stability": 0.4, "style": 0.3, "speed": 1.1},
+        "sad": {"stability": 0.6, "style": 0.2, "speed": 0.9},
+        "scared": {"stability": 0.6, "style": 0.2, "speed": 0.9},
+        "angry": {"stability": 0.3, "style": 0.4, "speed": 1.0},
+        "neutral": {"stability": 0.5, "style": 0.0, "speed": 1.0},
+        "surprised": {"stability": 0.5, "style": 0.0, "speed": 1.0}
+    }.get(emotion_type, {"stability": 0.5, "style": 0.0, "speed": 1.0})
+    
+    # Character-specific modifiers
+    character_mods = {
+        "Naruto": {
+            "stability_mod": -0.1,  # More variation
+            "style_mod": 0.2,      # Stronger emotion
+            "speed_mod": 0.1       # Slightly faster
+        },
+        "Sasuke": {
+            "stability_mod": 0.1,   # More stable
+            "style_mod": -0.1,     # Subtle emotion
+            "speed_mod": -0.05     # Slightly slower
+        },
+        "Narrator": {
+            "stability_mod": 0.2,   # Very stable
+            "style_mod": -0.2,     # Minimal emotion
+            "speed_mod": 0         # Standard speed
+        }
+    }.get(character, {"stability_mod": 0, "style_mod": 0, "speed_mod": 0})
+    
+    # Apply emotion intensity and stability from the data
+    intensity = emotion_data.get('intensity', 0.5)
+    stability = emotion_data.get('stability', 0.8)
+    style_value = emotion_data.get('style', 0.3)
+    
+    # Calculate final values with character modifications
+    final_stability = min(0.9, max(0.1, 
+        base_settings['stability'] * stability + character_mods['stability_mod']))
+    final_style = min(1.0, max(0.0, 
+        base_settings['style'] * style_value + character_mods['style_mod']))
+    final_speed = min(2.0, max(0.5, 
+        base_settings['speed'] + character_mods['speed_mod']))
+    
+    return {
+        "stability": final_stability,
+        "similarity_boost": 0.75,
+        "style": final_style,
+        "speed": final_speed,
+        "use_speaker_boost": True
+    }
 
 def retry_with_backoff(max_retries=3, initial_delay=1):
     """Decorator for retry logic with exponential backoff."""
@@ -81,26 +123,66 @@ def retry_with_backoff(max_retries=3, initial_delay=1):
         return wrapper
     return decorator
 
+CHARACTER_VOICES = {
+    "Naruto": {
+        "voice_id": "pNInz6obpgDQGcFmaJgB",  # Adam, energetic, young male voice
+        "name": "Adam"
+    },
+    "Sasuke": {
+        "voice_id": "VR6AewLTigWG4xSOukaG",  # Sam, deep, serious male voice
+        "name": "Sam"
+    },
+    "Narrator": {
+        "voice_id": "ThT5KcBeYPX3keUQqHPh",  # Daniel, clear narrative voice
+        "name": "Daniel"
+    }
+}
+
 @retry_with_backoff()
-def generate_dialogue_audio(client: ElevenLabs, dialogue: Dict[str, Any], voice_id: str, output_path: Path) -> bool:
-    """Generate audio for a single dialogue."""
+def generate_dialogue_audio(dialogue: Dict[str, Any], output_path: Path) -> bool:
+    """Generate audio for a single dialogue with character-specific voice."""
     try:
         text = dialogue["text"]
         speaker = dialogue["speaker"]
-        emotion = dialogue["emotion"]
+        emotion_data = dialogue["emotion"]
         
-        prefixed_text = map_emotion_to_text_prefix(emotion, speaker) + text
-        voice_settings = get_voice_settings(emotion)
+        # Get character voice settings
+        character_voice = CHARACTER_VOICES.get(speaker, CHARACTER_VOICES["Narrator"])
+        voice_id = character_voice["voice_id"]
         
-        audio_bytes = client.text_to_speech.convert(
+        # Add emotion prefix if not neutral
+        if emotion_data["type"].lower() != "neutral":
+            prefixed_text = f"[{emotion_data['description']}] {text}"
+        else:
+            prefixed_text = text
+        
+        # Get voice settings tuned for both emotion and character
+        settings = get_voice_settings(emotion_data, speaker)
+        
+        client = initialize_elevenlabs()
+        
+        # Get voice settings for the API
+        voice_settings = {
+            "stability": settings["stability"],
+            "similarity_boost": settings["similarity_boost"],
+            "style": settings["style"]
+        }
+        
+        # Generate audio
+        audio_stream = client.text_to_speech.convert(
+            text=prefixed_text,
             voice_id=voice_id,
             model_id=MODEL_ID,
-            output_format=OUTPUT_FORMAT,
-            text=prefixed_text,
-            voice_settings=voice_settings
+            voice_settings=voice_settings,
+            output_format="mp3_44100_128"
         )
         
-        output_path.write_bytes(audio_bytes)
+        # Save audio to file
+        with open(str(output_path), 'wb') as f:
+            # Handle streaming response
+            for chunk in audio_stream:
+                if isinstance(chunk, bytes):
+                    f.write(chunk)
         logging.info(f"Generated audio for dialogue: {text[:50]}...")
         return True
     
@@ -140,7 +222,7 @@ def generate_audio_tracks(analysis_results: Dict[str, Any], job_id: str) -> Dict
     job_audio_dir = AUDIO_DIR / job_id
     job_audio_dir.mkdir(parents=True, exist_ok=True)
     
-    client = initialize_elevenlabs_client()
+    initialize_elevenlabs()
     voice_id = DEFAULT_VOICE_ID
     
     total_dialogues = 0
@@ -159,7 +241,7 @@ def generate_audio_tracks(analysis_results: Dict[str, Any], job_id: str) -> Dict
                 filename = f"dialogue_p{page_idx:03d}_r{panel['reading_order']:02d}_d{dialogue_idx:02d}.mp3"
                 audio_path = job_audio_dir / filename
                 
-                if generate_dialogue_audio(client, dialogue, voice_id, audio_path):
+                if generate_dialogue_audio(dialogue, audio_path):
                     successful_dialogues += 1
                     dialogue["audio_path"] = str(audio_path)
                     audio_paths.append(audio_path)
