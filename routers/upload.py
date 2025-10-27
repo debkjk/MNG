@@ -3,6 +3,8 @@ from services.db_service import create_job, update_job_status
 from services.pdf_processor import convert_pdf_to_images, validate_pdf
 from services.gemini_service import process_manga_pages
 from services.tts_service import generate_audio_tracks
+# Uncomment the line below to use MOCK TTS (for testing without ElevenLabs)
+# from services.tts_service_mock import generate_audio_tracks_mock as generate_audio_tracks
 from services.video_generator import create_manga_video
 from pathlib import Path
 import shutil
@@ -21,51 +23,134 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 # Maximum file size (50MB in bytes)
 MAX_FILE_SIZE = 50 * 1024 * 1024
 
-def process_manga_pipeline(job_id: str, pdf_path: Path):
-    """
-    Background task to process uploaded manga PDF.
-    Converts PDF to images and prepares for subsequent processing phases.
-    
-    Args:
-        job_id: Unique identifier for the job
-        pdf_path: Path to the uploaded PDF file
-    """
+@router.post("/upload")
+async def upload_file(file: UploadFile = File(...), background_tasks: BackgroundTasks = BackgroundTasks()):
+    """Handle manga PDF upload and initiate processing."""
     try:
-        # Update status to processing
-        update_job_status(job_id, "processing")
-        logging.info(f"Starting background processing for job {job_id}")
+        # Validate file size
+        file_size = 0
+        contents = await file.read()
+        file_size = len(contents)
         
-        # Validate PDF before processing
+        if file_size > MAX_FILE_SIZE:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail="File size exceeds maximum limit (50MB)"
+            )
+            
+        # Generate storage filename and save file
+        storage_filename = f"{uuid.uuid4()}.pdf"
+        pdf_path = UPLOAD_DIR / storage_filename
+        
+        with open(pdf_path, "wb") as f:
+            f.write(contents)
+            
+        # Create job record
+        job_id = create_job(file.filename or "unknown.pdf", storage_filename)
+        
+        # Start background processing
+        if background_tasks:
+            background_tasks.add_task(process_manga_pipeline, job_id, pdf_path)
+        
+        return {"job_id": job_id}
+        
+    except Exception as e:
+        logging.error(f"Upload failed: {str(e)}")
+        logging.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+def process_manga_pipeline(job_id: str, pdf_path: Path):
+    """Process manga PDF in background."""
+    try:
+        logging.info(f"\n{'='*60}")
+        logging.info(f"🚀 STARTING JOB: {job_id}")
+        logging.info(f"📄 PDF File: {pdf_path.name}")
+        logging.info(f"{'='*60}\n")
+        
+        update_job_status(job_id, "processing", current_operation="Validating PDF")
+        logging.info(f"✅ Step 1/4: Validating PDF...")
+        
         if not validate_pdf(pdf_path):
-            logging.error(f"Invalid PDF format for job {job_id}")
-            update_job_status(job_id, "failed", error_message="Invalid or corrupted PDF")
+            logging.error(f"❌ PDF validation failed for {pdf_path}")
+            update_job_status(job_id, "failed", error_message="Invalid PDF format")
             return
         
-        # Convert PDF to images
+        logging.info(f"✅ PDF validation successful")
+            
+        # Phase 1: Convert PDF to images
+        logging.info(f"\n📸 Step 2/4: Converting PDF to images...")
+        update_job_status(job_id, "processing", current_operation="Converting PDF to images")
         image_paths = convert_pdf_to_images(pdf_path, job_id)
-        logging.info(f"Successfully converted PDF to {len(image_paths)} images for job {job_id}")
+        total_pages = len(image_paths)
+        logging.info(f"✅ Extracted {total_pages} pages from PDF")
         
-        # Phase 4 - Gemini AI analysis
-        logging.info(f"Starting Gemini AI analysis for job {job_id}")
-        analysis_results = process_manga_pages(image_paths, job_id)
-        logging.info(f"Gemini analysis completed for job {job_id}. Found {analysis_results['total_panels']} panels with {analysis_results['total_dialogues']} dialogues")
+        # Update job with total pages
+        update_job_status(job_id, "processing", total_pages=total_pages, current_page=0)
         
-        # Phase 5 - TTS generation
-        logging.info(f"Starting TTS generation for job {job_id}")
-        tts_results = generate_audio_tracks(analysis_results, job_id)
-        logging.info(f"TTS generation completed for job {job_id}. Generated {tts_results['successful_dialogues']} audio files. Merged audio: {tts_results['merged_audio_path']}")
-        analysis_results = tts_results
+        # Phase 2: Process each page
+        logging.info(f"\n🤖 Step 3/4: Analyzing pages with Gemini AI...")
+        all_analysis_results = {
+            "pages": [],
+            "total_dialogues": 0
+        }
         
-        # Phase 6 - Video generation
-        logging.info(f"Starting video generation for job {job_id}")
-        video_path = create_manga_video(analysis_results, job_id)
-        logging.info(f"Video generation completed for job {job_id}. Video saved to: {video_path}")
+        for idx, image_path in enumerate(image_paths, 1):
+            logging.info(f"   📄 Analyzing page {idx}/{total_pages}...")
+            update_job_status(
+                job_id, 
+                "processing",
+                current_operation=f"Analyzing page {idx}/{total_pages} with Gemini",
+                current_page=idx
+            )
+            
+            # Extract dialogs using Gemini
+            page_analysis = process_manga_pages([image_path], job_id)
+            page_dialogues = page_analysis["total_dialogues"]
+            logging.info(f"   ✅ Page {idx}: Found {page_dialogues} dialogues")
+            
+            all_analysis_results["pages"].extend(page_analysis["pages"])
+            all_analysis_results["total_dialogues"] += page_dialogues
+            
+        logging.info(f"\n✅ Gemini analysis completed!")
+        logging.info(f"   📊 Total: {all_analysis_results['total_dialogues']} dialogues")
+        
+        # Phase 3 - TTS generation
+        logging.info(f"\n🎤 Step 4/4: Generating audio with ElevenLabs...")
+        update_job_status(job_id, "processing", current_operation="Generating audio with ElevenLabs")
+        
+        tts_results = generate_audio_tracks(all_analysis_results, job_id)
+        
+        logging.info(f"\n✅ TTS generation completed!")
+        logging.info(f"   🎵 Generated {tts_results['successful_dialogues']}/{tts_results['total_dialogues']} audio files")
+        logging.info(f"   📁 Merged audio: {tts_results['merged_audio_path']}")
+        
+        # Phase 4 - Video generation
+        logging.info(f"\n🎬 Step 5/5: Creating final video...")
+        update_job_status(job_id, "processing", current_operation="Creating video with subtitles")
+        
+        video_path = create_manga_video(tts_results, job_id)
+        
+        logging.info(f"\n✅ Video generation completed!")
+        logging.info(f"   🎥 Video saved: {video_path}")
+        
         update_job_status(job_id, "completed", video_path=video_path)
-        logging.info(f"Job {job_id} completed successfully")
+        
+        logging.info(f"\n{'='*60}")
+        logging.info(f"🎉 JOB COMPLETED SUCCESSFULLY: {job_id}")
+        logging.info(f"{'='*60}\n")
         
     except Exception as e:
         error_msg = f"Processing failed: {str(e)}"
-        logging.error(f"Error processing job {job_id}: {error_msg}\n{traceback.format_exc()}")
+        logging.error(f"\n{'='*60}")
+        logging.error(f"❌ JOB FAILED: {job_id}")
+        logging.error(f"{'='*60}")
+        logging.error(f"Error: {error_msg}")
+        logging.error(f"\nFull traceback:")
+        logging.error(traceback.format_exc())
+        logging.error(f"{'='*60}\n")
         update_job_status(job_id, "failed", error_message=error_msg)
 
 def sanitize_filename(filename: str) -> str:
@@ -84,110 +169,3 @@ def sanitize_filename(filename: str) -> str:
         safe_name = f"{safe_name}.pdf"
     
     return safe_name
-
-@router.post("/upload", status_code=status.HTTP_201_CREATED)
-async def upload_manga(
-    background_tasks: BackgroundTasks,
-    file: UploadFile = File(...)
-):
-    """
-    Upload a manga PDF file for dubbing processing.
-    
-    Args:
-        file: PDF file uploaded through multipart/form-data
-        
-    Returns:
-        dict: Job information including job_id, filename, status, and message
-        
-    Raises:
-        HTTPException: If file validation fails or processing errors occur
-    """
-    # Validate file extension
-    if not file.filename.lower().endswith('.pdf'):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only PDF files are allowed"
-        )
-    
-    # Validate content type
-    if file.content_type not in ['application/pdf', 'application/x-pdf']:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid file type. Only PDF files are allowed"
-        )
-    
-    try:
-        # Generate storage filename using UUID only
-        storage_filename = f"{uuid.uuid4()}.pdf"
-        file_path = UPLOAD_DIR / storage_filename
-        
-        # Track file size while copying
-        size = 0
-        is_pdf_verified = False
-        
-        with file_path.open("wb") as buffer:
-            # Read first chunk to verify PDF header
-            first_chunk = await file.read(8192)
-            if not first_chunk.startswith(b'%PDF-'):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid PDF file. File does not have a valid PDF header."
-                )
-            
-            # Process first chunk
-            size = len(first_chunk)
-            if size > MAX_FILE_SIZE:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"File too large. Maximum size is {MAX_FILE_SIZE/(1024*1024):.1f}MB"
-                )
-            buffer.write(first_chunk)
-            is_pdf_verified = True
-            
-            # Process remaining chunks
-            while chunk := await file.read(8192):
-                size += len(chunk)
-                if size > MAX_FILE_SIZE:
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail=f"File too large. Maximum size is {MAX_FILE_SIZE/(1024*1024):.1f}MB"
-                    )
-                buffer.write(chunk)
-        
-        # Create job record with original filename
-        original_filename = sanitize_filename(file.filename)
-        job_id = create_job(original_filename, storage_filename)
-        
-        # Schedule background processing
-        pdf_path = UPLOAD_DIR / storage_filename
-        background_tasks.add_task(process_manga_pipeline, job_id, pdf_path)
-        logging.info(f"Background processing scheduled for job {job_id}")
-        
-        # Close the upload file to release resources
-        await file.close()
-        
-        return {
-            "job_id": job_id,
-            "filename": original_filename,
-            "status": "queued",
-            "message": "File uploaded successfully. Processing has started in the background."
-        }
-        
-    except HTTPException as http_exc:
-        # Clean up uploaded file if it was created
-        if 'file_path' in locals() and file_path.exists():
-            file_path.unlink()
-        await file.close()
-        raise http_exc
-        
-    except Exception as e:
-        # Clean up uploaded file if it was created
-        if 'file_path' in locals() and file_path.exists():
-            file_path.unlink()
-        await file.close()
-        
-        logging.error(f"Upload failed: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to process upload"
-        )

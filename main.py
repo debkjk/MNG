@@ -1,12 +1,13 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 import uvicorn
 from dotenv import load_dotenv
 import os
 from datetime import datetime
 from pathlib import Path
-from database import init_db
+from database.database import init_db
 from contextlib import asynccontextmanager
 
 # Load environment variables
@@ -31,7 +32,7 @@ app = FastAPI(
 )
 
 # Configure CORS
-# Normalize allowed origins: split by comma, strip whitespace, filter empty strings
+# Get allowed origins from environment variable
 allowed_origins = [
     origin.strip()
     for origin in os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
@@ -42,7 +43,7 @@ allowed_origins = [
 is_wildcard = allowed_origins == ["*"]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
+    allow_origins=allowed_origins if not is_wildcard else ["*"],
     allow_credentials=not is_wildcard,  # False if using wildcard
     allow_methods=["*"],
     allow_headers=["*"]
@@ -52,18 +53,11 @@ app.add_middleware(
 static_dir = Path(__file__).resolve().parent / 'static'
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
-# Root endpoint
+# Root endpoint - serve the web interface
 @app.get("/")
 async def root():
-    """Root endpoint returning API information"""
-    return {
-        "service": "AI Manga Dubbing Platform API",
-        "version": "1.0.0",
-        "documentation": {
-            "swagger": "/docs",
-            "redoc": "/redoc"
-        }
-    }
+    """Serve the main HTML page."""
+    return FileResponse(static_dir / "index.html")
 
 # Health check endpoint
 @app.get("/health")
@@ -74,19 +68,6 @@ async def health_check():
         "service": "manga-dubbing-api",
         "timestamp": datetime.utcnow().isoformat()
     }
-
-# Database initialization using lifespan handler
-from contextlib import asynccontextmanager
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Lifespan handler for database initialization and cleanup."""
-    # Startup
-    init_db()
-    print("Database initialized successfully")
-    yield
-    # Shutdown
-    # Add any cleanup code here if needed
 
 # Import and include routers
 from routers import upload, process, download

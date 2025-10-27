@@ -275,6 +275,35 @@
         <p>Job ID: <span id="jobId"></span></p>
         <p>Status: <span id="status" class="status-badge"></span></p>
         <p>Started: <span id="createdAt"></span></p>
+
+        <!-- Progress Information -->
+        <div id="progressInfo" style="display: none; margin-top: 1rem">
+          <div class="progress-container">
+            <div class="progress-bar">
+              <div id="progressFill" class="progress-fill"></div>
+            </div>
+            <div id="progressText" class="progress-text">0%</div>
+          </div>
+          <p id="currentOperation" class="progress-text"></p>
+          <p id="pageProgress" class="progress-text"></p>
+          
+          <!-- Detailed Log Viewer -->
+          <div style="margin-top: 1.5rem; border-top: 1px solid #e0e0e0; padding-top: 1rem;">
+            <h3 style="font-size: 1rem; margin-bottom: 0.5rem;">📋 Processing Log:</h3>
+            <div id="logViewer" style="
+              background: #f5f5f5;
+              border: 1px solid #ddd;
+              border-radius: 4px;
+              padding: 1rem;
+              max-height: 300px;
+              overflow-y: auto;
+              font-family: 'Courier New', monospace;
+              font-size: 0.85rem;
+              line-height: 1.6;
+            "></div>
+          </div>
+        </div>
+
         <div id="errorMessage" class="error" style="display: none"></div>
       </section>
 
@@ -308,6 +337,13 @@
       const downloadLink = document.getElementById("downloadLink");
       const resetButton = document.getElementById("resetButton");
 
+      // Progress tracking elements
+      const progressInfo = document.getElementById("progressInfo");
+      const progressFill = document.getElementById("progressFill");
+      const progressText = document.getElementById("progressText");
+      const currentOperation = document.getElementById("currentOperation");
+      const pageProgress = document.getElementById("pageProgress");
+
       // Utility Functions
       function formatTimestamp(isoString) {
         return new Date(isoString).toLocaleString();
@@ -332,6 +368,20 @@
       function showError(message) {
         errorMessage.textContent = message;
         errorMessage.style.display = "block";
+      }
+
+      // Update progress information
+      function updateProgressInfo(data) {
+        if (!data.current_operation) return;
+
+        currentOperation.textContent = data.current_operation;
+
+        if (data.total_pages && data.current_page !== undefined) {
+          const progress = (data.current_page / data.total_pages) * 100;
+          progressFill.style.width = `${progress}%`;
+          progressText.textContent = `${Math.round(progress)}%`;
+          pageProgress.textContent = `Page ${data.current_page} of ${data.total_pages}`;
+        }
       }
 
       // File Input Handler
@@ -445,13 +495,22 @@
 
           updateStatusBadge(data.status);
 
+          // Update progress information
+          updateProgressInfo(data);
+
           if (data.status === "completed") {
             videoPlayer.src = `/${data.video_path}`;
             downloadLink.href = `/api/download/${jobId}`;
             videoSection.style.display = "block";
+            progressInfo.style.display = "none";
           } else if (data.status === "failed") {
             showError(data.error_message || "Processing failed");
+            progressInfo.style.display = "none";
           } else {
+            // Show progress info for processing jobs
+            if (data.status === "processing") {
+              progressInfo.style.display = "block";
+            }
             // Reset fail count on successful response
             setTimeout(() => pollStatus(jobId, 0), 5000);
           }

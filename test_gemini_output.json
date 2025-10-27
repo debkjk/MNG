@@ -1,0 +1,83 @@
+{
+  "pages": [
+    {
+      "page_type": "story",
+      "page_number": 1,
+      "dialogs": [
+        {
+          "sequence": 1,
+          "text": "The sorcery emperor has returned!!",
+          "speaker": "Citizen",
+          "emotion": {
+            "type": "excitement",
+            "intensity": 0.9,
+            "stability": 0.7,
+            "style": 0.2,
+            "description": "Excited announcement",
+            "speed": 1.2,
+            "volume": 1.3,
+            "pitch": "high"
+          },
+          "speech": {
+            "speed": 1.2,
+            "volume": 1.3,
+            "pitch": "high"
+          },
+          "position": {
+            "vertical": "top",
+            "horizontal": "right"
+          }
+        },
+        {
+          "sequence": 2,
+          "text": "He and the other magicknights sent that invading army packing!!",
+          "speaker": "Citizen",
+          "emotion": {
+            "type": "excitement",
+            "intensity": 0.8,
+            "stability": 0.7,
+            "style": 0.2,
+            "description": "Excited explanation",
+            "speed": 1.1,
+            "volume": 1.2,
+            "pitch": "medium"
+          },
+          "speech": {
+            "speed": 1.1,
+            "volume": 1.2,
+            "pitch": "medium"
+          },
+          "position": {
+            "vertical": "top",
+            "horizontal": "left"
+          }
+        },
+        {
+          "sequence": 3,
+          "text": "TWO CHEERS FOR OUR HERO, THE SORCERY EMPEROR !!!",
+          "speaker": "Citizen",
+          "emotion": {
+            "type": "excitement",
+            "intensity": 1.0,
+            "stability": 0.8,
+            "style": 0.1,
+            "description": "Loud cheering",
+            "speed": 1.3,
+            "volume": 1.5,
+            "pitch": "high"
+          },
+          "speech": {
+            "speed": 1.3,
+            "volume": 1.5,
+            "pitch": "high"
+          },
+          "position": {
+            "vertical": "middle",
+            "horizontal": "right"
+          }
+        }
+      ]
+    }
+  ],
+  "total_dialogues": 3
+}

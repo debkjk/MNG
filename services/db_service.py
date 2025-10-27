@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import Optional, Dict, Any, Literal
 import sqlite3
-from database import get_db_connection
+from database.database import get_db_connection
 
 # Define valid job statuses
 JobStatus = Literal['queued', 'processing', 'completed', 'failed']
@@ -13,26 +13,34 @@ def create_job(filename: str, storage_filename: str) -> str:
     Create a new job record in the database.
     
     Args:
-        filename: The original name of the uploaded PDF file
-        storage_filename: The actual filename used to store the file
+        filename: Original filename of the PDF
+        storage_filename: Unique filename used to store the file
         
     Returns:
-        str: The generated job_id
+        str: The job_id
         
     Raises:
         Exception: If database operation fails
     """
     try:
+        job_id = str(uuid.uuid4())
         with get_db_connection() as conn:
             cursor = conn.cursor()
-            
-            job_id = str(uuid.uuid4())
             now = datetime.utcnow().isoformat()
             
             cursor.execute('''
-                INSERT INTO jobs (job_id, filename, storage_filename, status, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?)
-            ''', (job_id, filename, storage_filename, 'queued', now, now))
+                INSERT INTO jobs (
+                    job_id, 
+                    filename, 
+                    storage_filename, 
+                    status, 
+                    created_at, 
+                    updated_at,
+                    current_operation,
+                    current_page,
+                    total_pages
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (job_id, filename, storage_filename, 'queued', now, now, 'Initializing', 0, None))
             
             conn.commit()
             return job_id
@@ -64,7 +72,10 @@ def update_job_status(
     job_id: str, 
     status: JobStatus,
     video_path: Optional[str] = None, 
-    error_message: Optional[str] = None
+    error_message: Optional[str] = None,
+    current_operation: Optional[str] = None,
+    current_page: Optional[int] = None,
+    total_pages: Optional[int] = None
 ) -> bool:
     """
     Update the status and optional fields of a job.
@@ -74,6 +85,9 @@ def update_job_status(
         status: New status value (must be one of VALID_STATUSES)
         video_path: Optional path to the generated video file
         error_message: Optional error message if job failed
+        current_operation: Optional current operation description
+        current_page: Optional current page being processed
+        total_pages: Optional total number of pages
         
     Returns:
         bool: True if job was updated, False if job not found
@@ -90,14 +104,37 @@ def update_job_status(
             
             updated_at = datetime.utcnow().isoformat()
             
-            cursor.execute('''
+            # Build dynamic update query based on provided parameters
+            update_fields = ['status = ?', 'updated_at = ?']
+            update_values = [status, updated_at]
+            
+            if video_path is not None:
+                update_fields.append('video_path = ?')
+                update_values.append(video_path)
+            
+            if error_message is not None:
+                update_fields.append('error_message = ?')
+                update_values.append(error_message)
+                
+            if current_operation is not None:
+                update_fields.append('current_operation = ?')
+                update_values.append(current_operation)
+                
+            if current_page is not None:
+                update_fields.append('current_page = ?')
+                update_values.append(str(current_page))
+                
+            if total_pages is not None:
+                update_fields.append('total_pages = ?')
+                update_values.append(str(total_pages))
+            
+            update_values.append(job_id)
+            
+            cursor.execute(f'''
                 UPDATE jobs 
-                SET status = ?, 
-                    video_path = ?, 
-                    error_message = ?,
-                    updated_at = ?
+                SET {', '.join(update_fields)}
                 WHERE job_id = ?
-            ''', (status, video_path, error_message, updated_at, job_id))
+            ''', update_values)
             
             conn.commit()
             return cursor.rowcount > 0

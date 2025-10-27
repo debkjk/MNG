@@ -1,0 +1,149 @@
+{
+  "character_types": {
+    "main_character": {
+      "voice_stability": 0.7,
+      "style_intensity": 0.6,
+      "emotion_intensity": 0.8
+    },
+    "supporting_character": {
+      "voice_stability": 0.6,
+      "style_intensity": 0.5,
+      "emotion_intensity": 0.7
+    },
+    "background_character": {
+      "voice_stability": 0.5,
+      "style_intensity": 0.4,
+      "emotion_intensity": 0.6
+    },
+    "narrator": {
+      "voice_stability": 0.9,
+      "style_intensity": 0.3,
+      "emotion_intensity": 0.5
+    }
+  },
+  "characters": {
+    "Narrator": {
+      "type": "narrator",
+      "voice_id": "EXAVITQu4vr4xnSDxMaL",
+      "voice_description": "Mature, clear, professional voice",
+      "gender": "female",
+      "age": "adult",
+      "personality": "calm, authoritative"
+    },
+    "Male_Villager_1": {
+      "type": "background_character",
+      "voice_id": "ErXwobaYiN019PkySvjV",
+      "voice_description": "Middle-aged male villager",
+      "gender": "male",
+      "age": "adult",
+      "personality": "simple, honest"
+    },
+    "Female_Villager_1": {
+      "type": "background_character",
+      "voice_id": "EXAVITQu4vr4xnSDxMaL",
+      "voice_description": "Young female villager",
+      "gender": "female",
+      "age": "young_adult",
+      "personality": "friendly, helpful"
+    },
+    "Elder": {
+      "type": "supporting_character",
+      "voice_id": "VR6AewLTigWG4xSOukaG",
+      "voice_description": "Elderly wise person",
+      "gender": "male",
+      "age": "elderly",
+      "personality": "wise, patient"
+    }
+  },
+  "default_voices": {
+    "UNKNOWN_MALE": {
+      "type": "background_character",
+      "voice_id": "pNInz6obpgDQGcFmaJgB",
+      "voice_description": "Generic male voice",
+      "gender": "male",
+      "personality": "neutral"
+    },
+    "UNKNOWN_FEMALE": {
+      "type": "background_character",
+      "voice_id": "21m00Tcm4TlvDq8ikWAM",
+      "voice_description": "Generic female voice",
+      "gender": "female",
+      "personality": "neutral"
+    },
+    "UNKNOWN": {
+      "type": "background_character",
+      "voice_id": "ThT5KcBeYPX3keUQqHPh",
+      "voice_description": "Neutral narrator voice",
+      "gender": "neutral",
+      "personality": "neutral"
+    }
+  },
+  "emotion_modifiers": {
+    "calm": {
+      "stability_mod": 0.1,
+      "style_mod": 0,
+      "speed_mod": 0,
+      "pitch_mod": 0
+    },
+    "angry": {
+      "stability_mod": -0.2,
+      "style_mod": 0.3,
+      "speed_mod": 0.2,
+      "pitch_mod": 0.1
+    },
+    "yell": {
+      "stability_mod": -0.3,
+      "style_mod": 0.4,
+      "speed_mod": 0.3,
+      "pitch_mod": 0.2
+    },
+    "sad": {
+      "stability_mod": 0.1,
+      "style_mod": -0.1,
+      "speed_mod": -0.1,
+      "pitch_mod": -0.1
+    },
+    "whisper": {
+      "stability_mod": 0.2,
+      "style_mod": -0.2,
+      "speed_mod": -0.2,
+      "pitch_mod": -0.1
+    },
+    "excitement": {
+      "stability_mod": -0.15,
+      "style_mod": 0.3,
+      "speed_mod": 0.2,
+      "pitch_mod": 0.15
+    },
+    "amusement": {
+      "stability_mod": -0.1,
+      "style_mod": 0.2,
+      "speed_mod": 0.1,
+      "pitch_mod": 0.1
+    },
+    "scared": {
+      "stability_mod": -0.2,
+      "style_mod": 0.2,
+      "speed_mod": 0.2,
+      "pitch_mod": 0.3
+    },
+    "surprised": {
+      "stability_mod": -0.15,
+      "style_mod": 0.2,
+      "speed_mod": 0.15,
+      "pitch_mod": 0.2
+    },
+    "neutral": {
+      "stability_mod": 0,
+      "style_mod": 0,
+      "speed_mod": 0,
+      "pitch_mod": 0
+    },
+    "narration": {
+      "stability_mod": 0.2,
+      "style_mod": -0.1,
+      "speed_mod": 0,
+      "pitch_mod": 0
+    }
+  }
+}

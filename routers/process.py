@@ -1,6 +1,5 @@
 from fastapi import APIRouter, HTTPException, status, UploadFile, File
 from services.db_service import get_job, update_job_status
-from manga_dialog_extractor import analyze_manga_page
 from services.gemini_service import process_manga_pages
 import logging
 from pathlib import Path
@@ -51,7 +50,7 @@ async def extract_dialogs(
         temp_dir.mkdir(parents=True, exist_ok=True)
         
         # Save uploaded file
-        temp_file = temp_dir / file.filename
+        temp_file = temp_dir / (file.filename or "temp.jpg")
         with temp_file.open("wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
             
@@ -61,8 +60,8 @@ async def extract_dialogs(
             audio_dir = Path("static/audio") / temp_file.stem
             audio_dir.mkdir(parents=True, exist_ok=True)
             
-        # Extract dialogs
-        result = analyze_manga_page(str(temp_file), str(audio_dir) if audio_dir else None)
+        # Extract dialogs using gemini service
+        result = process_manga_pages([temp_file], "temp_job")
         
         # Clean up temp file
         temp_file.unlink()

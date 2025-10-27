@@ -41,7 +41,7 @@ def convert_pdf_to_images(pdf_path: Path, job_id: str) -> List[Path]:
         # Convert each page
         for page_num in range(len(doc)):
             page = doc.load_page(page_num)
-            pix = page.get_pixmap(matrix=matrix, alpha=False)
+            pix = page.get_pixmap(matrix=matrix, alpha=False, colorspace=fitz.csRGB)
             
             # Generate output path with zero-padded page number
             output_path = job_dir / f"page_{page_num:03d}.{IMAGE_FORMAT}"

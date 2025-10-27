@@ -4,7 +4,7 @@ from datetime import datetime
 import logging
 
 # Configure database path in backend root directory
-DATABASE_PATH = Path(__file__).resolve().parent / 'manga_dubbing.db'
+DATABASE_PATH = Path(__file__).resolve().parent.parent / 'database' / 'manga_dubbing.db'
 
 class DBConnection:
     """Context manager for database connections."""
@@ -41,7 +41,7 @@ def init_db():
         with get_db_connection() as conn:
             cursor = conn.cursor()
 
-            # Create jobs table with status check constraint
+            # Create jobs table with status check constraint and multi-page support
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS jobs (
                     job_id TEXT PRIMARY KEY,
@@ -50,6 +50,9 @@ def init_db():
                     status TEXT NOT NULL CHECK(status IN ('queued', 'processing', 'completed', 'failed')),
                     video_path TEXT,
                     error_message TEXT,
+                    current_operation TEXT,
+                    current_page INTEGER DEFAULT 0,
+                    total_pages INTEGER,
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL
                 )

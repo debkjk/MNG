@@ -1,23 +1,66 @@
 # AI Manga Dubbing Platform
 
-An automated platform that converts manga PDFs into dubbed videos using state-of-the-art AI technologies. The platform leverages Google's Gemini 2.5 Flash for unified manga analysis and ElevenLabs for emotional text-to-speech generation.
+An automated platform that converts manga PDFs into dubbed videos using state-of-the-art AI technologies. The platform leverages Google's Gemini Vision for unified manga analysis and ElevenLabs for emotional text-to-speech generation.
 
-## Key Features
+## Project Structure
 
-- Automated manga panel extraction and analysis using Gemini 2.5 Flash
-- High-quality emotional voice generation with ElevenLabs
-- Seamless video generation combining panels and audio
-- Real-time processing status updates
-- Web interface with live progress tracking
-- Direct video playback and download options
-- RESTful API interface for easy integration
+```
+manga-dubbing-backend/
+├── input/                  # Place your manga PDFs here
+├── database/              # Database related files
+├── services/              # Core service modules
+├── static/               # Generated files and web assets
+│   ├── audio/           # Generated audio files
+│   ├── manga_pages/     # Extracted manga pages
+│   ├── videos/          # Final output videos
+│   └── config/          # Configuration files
+├── process_manga.py      # Main processing script
+├── requirements.txt      # Python dependencies
+└── README.md            # This file
+```
 
-## Technology Stack
+## Setup Instructions
 
-### Backend
+1. Clone the repository
+2. Create a virtual environment:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+3. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+4. Set up environment variables:
+   - Copy `.env.example` to `.env`
+   - Add your API keys:
+     - `GEMINI_API_KEY`: Google Gemini Vision API key
+     - `ELEVEN_API_KEY`: ElevenLabs API key
 
-- FastAPI (Python 3.9+)
-- Uvicorn ASGI Server
+## Usage
+
+1. Place your manga PDF file in the `input/` directory
+2. Run the processing script:
+   ```bash
+   python process_manga.py "input/your-manga.pdf"
+   ```
+3. The script will:
+   - Extract pages from the PDF
+   - Analyze each page for dialogs
+   - Generate voice lines for each dialog
+   - Create a final video with synchronized audio
+4. Find the output video in `static/videos/`
+
+## API Endpoints
+
+Start the FastAPI server:
+
+```bash
+uvicorn main:app --reload
+```
+
+Visit `http://localhost:8000/docs` for interactive API documentation.
+
 - SQLite Database
 
 ### Frontend
