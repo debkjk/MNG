@@ -76,72 +76,62 @@ def initialize_gemini_client():
 
 def create_analysis_prompt() -> str:
     """Create the analysis prompt for Gemini."""
-    return """Analyze this manga page and extract ALL dialogue/text in EXACT READING ORDER (top to bottom, left to right).
+    return """Analyze the provided manga page image. Your task is to extract all dialogue, sound effects, and structural metadata, and format it into a single, comprehensive JSON object.
 
-📖 READING ORDER RULES:
-1. Read the page naturally - TOP to BOTTOM, LEFT to RIGHT
-2. Number dialogues in exact sequence (1, 2, 3...) as they should be read
-3. DO NOT track panels - ONLY extract dialogues in reading flow
-4. Include narration boxes, speech bubbles, thought bubbles, sound effects with text
+**CRITICAL RULES FOR DUBBING METADATA:**
+1.  **Pacing (`time_gap_before_s`):** Estimate this value based on visual cues (e.g., character reactions, panel density, dialogue length, dramatic pauses). A value of `0.0` is for immediate speech; `2.0-3.0` is for a long, dramatic pause or scene transition.
+2.  **Emotion (`type`, `intensity`):** Infer the emotional state from facial expressions, body language, text bubble style (spikes, waves), and font size. `intensity` should reflect how powerful the emotion is (e.g., a whisper is low intensity; a yell is high intensity).
+3.  **Local TTS Mapping (`speech`):** The `speech` object parameters (`speed`, `volume`, `pitch`) must be optimized for a local, rule-based Text-to-Speech (TTS) engine (like pyttsx3) to convey the emotion.
+    * **YELL/EXCITEMENT:** Should have `speed > 1.0` and `volume > 1.0`.
+    * **CALM/SADNESS:** Should have `speed < 1.0` and `volume` around `1.0`.
+    * **WHISPER:** Should have `volume < 1.0`.
 
-⏱️ TIMING ANALYSIS:
-For each dialogue, estimate the natural pause/gap BEFORE it starts:
-- **time_gap_before_s**: 0.0-3.0 seconds
-  - 0.0-0.5s: Continuous conversation, rapid exchange
-  - 0.5-1.5s: Normal conversation pace
-  - 1.5-2.5s: Dramatic pause, scene change within page
-  - 2.5-3.0s: Major scene transition, new panel group
+**STRICT OUTPUT CONSTRAINTS:**
+1.  **NO EXTRA TEXT:** Output must be *only* the raw JSON object. **Do not** include markdown code block delimiters (e.g., ```json), explanations, or any conversational text before or after the JSON.
+2.  **NO PANEL TRACKING:** The final output **must not** contain any keys related to 'panel'. The output must contain a single, sequential `dialogs` array for the entire page.
+3.  **READING ORDER:** Process all dialogue strictly in the top-to-bottom, left-to-right reading order (Japanese manga style).
 
-🎭 EMOTION & SPEECH ANALYSIS:
-For each dialogue, analyze:
-- **Emotion type**: calm, angry, yell, sad, whisper, excitement, amusement, scared, surprised, neutral, determined, hopeful, reflective, melancholic, narration
-- **Intensity**: 0.1-1.0 (how strong the emotion is)
-- **Stability**: 0.1-1.0 (how controlled/stable the emotion is)  
-- **Style**: 0.1-1.0 (formality level)
-- **Description**: Brief description based on visual cues
-- **Speed**: 0.8-1.3 (speaking speed multiplier)
-- **Volume**: 0.8-1.2 (volume level)
-- **Pitch**: "low", "medium", "high"
-- **Position**: vertical (top/middle/bottom), horizontal (left/center/right)
+**JSON SCHEMA MANDATE:**
+The output JSON must strictly adhere to the following schema. **All fields are mandatory** and must be populated. Use the specified value ranges for all numerical fields.
 
-🎯 OUTPUT FORMAT (STRICT JSON - NO MARKDOWN, NO EXPLANATIONS):
 {
-  "page_type": "story",
+  "page_type": "story" | "cover" | "info" | "blank",
   "page_number": 1,
   "dialogs": [
     {
       "sequence": 1,
-      "text": "exact dialogue text here",
-      "speaker": "Character Name",
+      "text": "[Exact dialogue or SFX text from the bubble/area]",
+      "speaker": "Character Name" | "Narrator" | "SFX" | "UNKNOWN",
       "time_gap_before_s": 0.5,
       "emotion": {
-        "type": "neutral",
-        "intensity": 0.5,
+        "type": "calm" | "angry" | "yell" | "sad" | "excitement" | "narration" | "neutral" | "whisper" | "fear" | "surprise",
+        "intensity": 0.8,
         "stability": 0.8,
         "style": 0.3,
-        "description": "Visual-cue-based description"
+        "description": "Visual-cue-based description of the emotional state."
       },
       "speech": {
         "speed": 1.0,
         "volume": 1.0,
-        "pitch": "medium"
+        "pitch": "medium" | "high" | "low"
       },
       "position": {
-        "vertical": "top",
-        "horizontal": "left"
+        "vertical": "top" | "middle" | "bottom",
+        "horizontal": "left" | "center" | "right"
       }
     }
   ]
 }
 
-⚠️ CRITICAL RULES - MANDATORY:
-1. Return ONLY valid JSON (no markdown blocks, no explanations, no extra text)
-2. DO NOT include any panel objects, panel_number, or panel references
-3. Every dialogue MUST have ALL fields including time_gap_before_s
-4. Sequence numbers must be continuous (1, 2, 3...)
-5. If page has no dialogues, return empty "dialogs": []
-6. Page types: "story" (main content), "cover", "info", "blank"
-7. Speaker types: "Character Name", "Narrator", "SFX", "UNKNOWN"
+**VALUE RANGES (MANDATORY):**
+- time_gap_before_s: 0.0 to 3.0 seconds
+- emotion.intensity: 0.1 to 1.0
+- emotion.stability: 0.1 to 1.0
+- emotion.style: 0.1 to 1.0
+- speech.speed: 0.8 to 1.3
+- speech.volume: 0.8 to 1.2
+
+**REMEMBER:** Output ONLY the JSON object. No markdown, no explanations, no extra text.
 """
 
 @retry_with_backoff()

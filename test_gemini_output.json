@@ -1,0 +1,77 @@
+{
+  "pages": [
+    {
+      "page_type": "story",
+      "page_number": 1,
+      "dialogs": [
+        {
+          "sequence": 1,
+          "text": "The sorcery emperor has returned!!",
+          "speaker": "Narrator",
+          "time_gap_before_s": 0.5,
+          "emotion": {
+            "type": "excitement",
+            "intensity": 0.9,
+            "stability": 0.7,
+            "style": 0.6,
+            "description": "Excited announcement of the emperor's return."
+          },
+          "speech": {
+            "speed": 1.1,
+            "volume": 1.1,
+            "pitch": "high"
+          },
+          "position": {
+            "vertical": "top",
+            "horizontal": "right"
+          }
+        },
+        {
+          "sequence": 2,
+          "text": "He and the other magicknights sent that invading army packing!!",
+          "speaker": "Narrator",
+          "time_gap_before_s": 0.3,
+          "emotion": {
+            "type": "neutral",
+            "intensity": 0.7,
+            "stability": 0.7,
+            "style": 0.3,
+            "description": "Narrating the previous events."
+          },
+          "speech": {
+            "speed": 1.0,
+            "volume": 1.0,
+            "pitch": "medium"
+          },
+          "position": {
+            "vertical": "top",
+            "horizontal": "left"
+          }
+        },
+        {
+          "sequence": 3,
+          "text": "TWO CHEERS FOR OUR HERO, THE SORCERY EMPEROR !!!",
+          "speaker": "Narrator",
+          "time_gap_before_s": 0.2,
+          "emotion": {
+            "type": "yell",
+            "intensity": 1.0,
+            "stability": 0.9,
+            "style": 0.7,
+            "description": "Loud cheers and celebration."
+          },
+          "speech": {
+            "speed": 1.2,
+            "volume": 1.2,
+            "pitch": "high"
+          },
+          "position": {
+            "vertical": "middle",
+            "horizontal": "right"
+          }
+        }
+      ]
+    }
+  ],
+  "total_dialogues": 3
+}

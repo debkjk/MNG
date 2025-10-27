@@ -15,6 +15,8 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from services.pdf_processor import convert_pdf_to_images, validate_pdf
 from services.gemini_service import process_manga_pages
+from services.tts_service import generate_audio_tracks
+from services.video_generator_slideshow import generate_dubbed_video_from_analysis
 
 def test_pipeline(pdf_path: str):
     """Test the pipeline step by step."""
@@ -121,14 +123,39 @@ def test_pipeline(pdf_path: str):
         print(f"\n💾 Full results saved to: {output_file}")
         print()
         
+        # Step 4: Generate Audio with Local TTS
+        if result['total_dialogues'] > 0:
+            print("\nStep 4: Generating audio with local TTS...")
+            try:
+                result_with_audio = generate_audio_tracks(result, test_job_id)
+                print(f"✅ Generated {result_with_audio.get('successful_dialogues', 0)} audio files")
+                print(f"   Merged audio: {result_with_audio.get('merged_audio_path', 'N/A')}")
+                print()
+                
+                # Step 5: Generate Final Video
+                print("\nStep 5: Generating final video...")
+                try:
+                    video_path = generate_dubbed_video_from_analysis(result_with_audio, test_job_id)
+                    print(f"✅ Video created: {video_path}")
+                    print()
+                except Exception as e:
+                    print(f"❌ Video generation failed: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    
+            except Exception as e:
+                print(f"❌ Audio generation failed: {e}")
+                import traceback
+                traceback.print_exc()
+        
         # Summary
         print("="*60)
         print("📋 SUMMARY:")
         print("="*60)
         if result['total_dialogues'] > 0:
             print(f"✅ Gemini successfully extracted {result['total_dialogues']} dialogues")
-            print("\n🎤 Next step would be: Generate audio with TTS")
-            print("   (Currently blocked by ElevenLabs API)")
+            print(f"✅ Local TTS audio generation completed")
+            print(f"✅ Final video created with slideshow + audio")
         else:
             print("❌ No dialogues extracted from the page")
             print("\n🔍 Possible reasons:")

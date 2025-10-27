@@ -152,27 +152,33 @@ static/
 
 ---
 
-## ✅ Gemini Prompt Enforcement
+## ✅ Enhanced Gemini Prompt with TTS Optimization
 
-### CRITICAL RULES (Enforced):
-1. ✅ Return ONLY valid JSON (no markdown, no explanations)
-2. ✅ NO panel objects, panel_number, or panel references
-3. ✅ Every dialogue MUST have ALL fields including `time_gap_before_s`
-4. ✅ Sequence numbers continuous (1, 2, 3...)
-5. ✅ Empty "dialogs": [] if no dialogues found
-6. ✅ Page types: "story", "cover", "info", "blank"
-7. ✅ Speaker types: "Character Name", "Narrator", "SFX", "UNKNOWN"
+### CRITICAL RULES FOR DUBBING METADATA:
+1. ✅ **Pacing (`time_gap_before_s`)**: Estimated from visual cues (character reactions, panel density, dramatic pauses)
+   - 0.0s = immediate speech
+   - 2.0-3.0s = long dramatic pause or scene transition
+   
+2. ✅ **Emotion (`type`, `intensity`)**: Inferred from facial expressions, body language, bubble style, font size
+   - Low intensity = whisper
+   - High intensity = yell
+   
+3. ✅ **Local TTS Mapping (`speech`)**: Optimized for rule-based TTS engines (pyttsx3)
+   - **YELL/EXCITEMENT**: `speed > 1.0`, `volume > 1.0`
+   - **CALM/SADNESS**: `speed < 1.0`, `volume ≈ 1.0`
+   - **WHISPER**: `volume < 1.0`
 
-### Reading Order:
-- ✅ Top to bottom
-- ✅ Left to right
-- ✅ Natural reading flow
-- ❌ No panel grouping
+### STRICT OUTPUT CONSTRAINTS:
+1. ✅ **NO EXTRA TEXT**: Only raw JSON (no markdown blocks, no explanations)
+2. ✅ **NO PANEL TRACKING**: Single sequential `dialogs` array only
+3. ✅ **READING ORDER**: Top-to-bottom, left-to-right (Japanese manga style)
 
-### Timing Analysis:
-- ✅ Estimates pause before each dialogue
-- ✅ Based on visual scene changes
-- ✅ Helps with natural audio pacing
+### MANDATORY FIELDS:
+- ✅ All fields required and populated
+- ✅ Sequence numbers continuous (1, 2, 3...)
+- ✅ Value ranges strictly enforced
+- ✅ Page types: "story", "cover", "info", "blank"
+- ✅ Speaker types: "Character Name", "Narrator", "SFX", "UNKNOWN"
 
 ---
 
