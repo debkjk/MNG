@@ -183,14 +183,8 @@ def generate_dubbed_video_from_analysis(analysis_results: Dict[str, Any], job_id
     Returns:
         Path to the generated video file
     """
-    # Extract page image paths from analysis results
-    page_images = []
-    for page in analysis_results.get("pages", []):
-        image_path = page.get("image_path")
-        if image_path and Path(image_path).exists():
-            page_images.append(image_path)
+    # SIMPLIFIED: Let generate_dubbed_video() auto-discover images
+    # It will search in static/pages/job_id/ for page_*.png files
+    # This is where the PDF processor saves them
     
-    if not page_images:
-        raise ValueError("No valid page images found in analysis results")
-    
-    return generate_dubbed_video(job_id, page_images)
+    return generate_dubbed_video(job_id, page_images=None)

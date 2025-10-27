@@ -12,7 +12,7 @@
         "intensity": 0.9,
         "stability": 0.7,
         "style": 0.6,
-        "description": "Excited announcement of the emperor's return."
+        "description": "Exclamation with a jagged speech bubble indicates excitement."
       },
       "speech": {
         "speed": 1.1,
@@ -30,15 +30,15 @@
       "speaker": "Narrator",
       "time_gap_before_s": 0.3,
       "emotion": {
-        "type": "neutral",
-        "intensity": 0.7,
+        "type": "excitement",
+        "intensity": 0.8,
         "stability": 0.7,
-        "style": 0.3,
-        "description": "Narrating the previous events."
+        "style": 0.5,
+        "description": "Excited narration of a victory."
       },
       "speech": {
         "speed": 1.0,
-        "volume": 1.0,
+        "volume": 1.1,
         "pitch": "medium"
       },
       "position": {
@@ -50,13 +50,13 @@
       "sequence": 3,
       "text": "TWO CHEERS FOR OUR HERO, THE SORCERY EMPEROR !!!",
       "speaker": "Narrator",
-      "time_gap_before_s": 0.2,
+      "time_gap_before_s": 0.5,
       "emotion": {
         "type": "yell",
         "intensity": 1.0,
         "stability": 0.9,
-        "style": 0.7,
-        "description": "Loud cheers and celebration."
+        "style": 0.8,
+        "description": "Loud cheering and celebration."
       },
       "speech": {
         "speed": 1.2,
