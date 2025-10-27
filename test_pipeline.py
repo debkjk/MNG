@@ -83,30 +83,35 @@ def test_pipeline(pdf_path: str):
                 sequence = dialogue.get('sequence', 0)
                 speaker = dialogue.get('speaker', 'Unknown')
                 text = dialogue.get('text', '')
+                time_gap = dialogue.get('time_gap_before_s', 0.0)
                 
                 # Get emotion
                 emotion = dialogue.get('emotion', {})
                 if isinstance(emotion, dict):
                     emotion_type = emotion.get('type', 'neutral')
                     emotion_desc = emotion.get('description', '')
+                    intensity = emotion.get('intensity', 0.5)
                 else:
                     emotion_type = emotion
                     emotion_desc = ''
+                    intensity = 0.5
                 
                 # Get speech settings
                 speech = dialogue.get('speech', {})
                 speed = speech.get('speed', 1.0)
                 pitch = speech.get('pitch', 'medium')
+                volume = speech.get('volume', 1.0)
                 
                 # Get position
                 position = dialogue.get('position', {})
                 vertical = position.get('vertical', 'middle')
                 horizontal = position.get('horizontal', 'center')
                 
-                print(f"\n   {sequence}. [{speaker}] ({emotion_type})")
+                print(f"\n   {sequence}. [{speaker}] ({emotion_type} - intensity: {intensity})")
                 print(f"      \"{text[:80]}{'...' if len(text) > 80 else ''}\"")
-                print(f"      Speech: speed={speed}, pitch={pitch}")
-                print(f"      Position: {vertical}-{horizontal}")
+                print(f"      ⏱️  Gap before: {time_gap}s")
+                print(f"      🎤 Speech: speed={speed}, volume={volume}, pitch={pitch}")
+                print(f"      📍 Position: {vertical}-{horizontal}")
         
         # Save results to JSON for inspection
         output_file = Path("test_gemini_output.json")

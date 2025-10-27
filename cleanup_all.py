@@ -16,7 +16,10 @@ def cleanup_all():
         "static/uploads",
         "static/manga_pages", 
         "static/audio",
-        "static/videos"
+        "static/videos",
+        "static/pages",      # Old folder - remove completely
+        "static/panels",     # Old folder - remove completely
+        "static/cached_responses"  # Old cache - remove completely
     ]
     
     # Clean directories

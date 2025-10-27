@@ -81,22 +81,30 @@ def create_analysis_prompt() -> str:
 📖 READING ORDER RULES:
 1. Read the page naturally - TOP to BOTTOM, LEFT to RIGHT
 2. Number dialogues in exact sequence (1, 2, 3...) as they should be read
-3. DO NOT group by panels - just extract dialogues in reading flow
-4. Include narration boxes, speech bubbles, thought bubbles
+3. DO NOT track panels - ONLY extract dialogues in reading flow
+4. Include narration boxes, speech bubbles, thought bubbles, sound effects with text
+
+⏱️ TIMING ANALYSIS:
+For each dialogue, estimate the natural pause/gap BEFORE it starts:
+- **time_gap_before_s**: 0.0-3.0 seconds
+  - 0.0-0.5s: Continuous conversation, rapid exchange
+  - 0.5-1.5s: Normal conversation pace
+  - 1.5-2.5s: Dramatic pause, scene change within page
+  - 2.5-3.0s: Major scene transition, new panel group
 
 🎭 EMOTION & SPEECH ANALYSIS:
 For each dialogue, analyze:
-- **Emotion type**: calm, angry, yell, sad, whisper, excitement, amusement, scared, surprised, neutral, determined, hopeful, reflective, melancholic
-- **Intensity**: 0.0-1.0 (how strong the emotion is)
-- **Stability**: 0.0-1.0 (how controlled/stable the emotion is)  
-- **Style**: 0.0-1.0 (formality level)
-- **Description**: Brief description of the emotional tone
-- **Speed**: 0.5-1.5 (speaking speed multiplier)
-- **Volume**: 0.5-1.5 (volume level)
+- **Emotion type**: calm, angry, yell, sad, whisper, excitement, amusement, scared, surprised, neutral, determined, hopeful, reflective, melancholic, narration
+- **Intensity**: 0.1-1.0 (how strong the emotion is)
+- **Stability**: 0.1-1.0 (how controlled/stable the emotion is)  
+- **Style**: 0.1-1.0 (formality level)
+- **Description**: Brief description based on visual cues
+- **Speed**: 0.8-1.3 (speaking speed multiplier)
+- **Volume**: 0.8-1.2 (volume level)
 - **Pitch**: "low", "medium", "high"
 - **Position**: vertical (top/middle/bottom), horizontal (left/center/right)
 
-🎯 OUTPUT FORMAT (STRICT JSON):
+🎯 OUTPUT FORMAT (STRICT JSON - NO MARKDOWN, NO EXPLANATIONS):
 {
   "page_type": "story",
   "page_number": 1,
@@ -104,13 +112,14 @@ For each dialogue, analyze:
     {
       "sequence": 1,
       "text": "exact dialogue text here",
-      "speaker": "Character Name or Narrator",
+      "speaker": "Character Name",
+      "time_gap_before_s": 0.5,
       "emotion": {
         "type": "neutral",
         "intensity": 0.5,
         "stability": 0.8,
         "style": 0.3,
-        "description": "Brief emotional description"
+        "description": "Visual-cue-based description"
       },
       "speech": {
         "speed": 1.0,
@@ -125,12 +134,14 @@ For each dialogue, analyze:
   ]
 }
 
-⚠️ CRITICAL RULES:
-- Return ONLY valid JSON (no markdown, no code blocks, no explanations)
-- Every dialogue MUST have ALL fields
-- Sequence numbers must be continuous (1, 2, 3...)
-- If page has no dialogues, return empty "dialogs": []
-- Page types: story (main content), cover, title, credits, blank
+⚠️ CRITICAL RULES - MANDATORY:
+1. Return ONLY valid JSON (no markdown blocks, no explanations, no extra text)
+2. DO NOT include any panel objects, panel_number, or panel references
+3. Every dialogue MUST have ALL fields including time_gap_before_s
+4. Sequence numbers must be continuous (1, 2, 3...)
+5. If page has no dialogues, return empty "dialogs": []
+6. Page types: "story" (main content), "cover", "info", "blank"
+7. Speaker types: "Character Name", "Narrator", "SFX", "UNKNOWN"
 """
 
 @retry_with_backoff()
