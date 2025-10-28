@@ -75,21 +75,22 @@ def initialize_gemini_client():
     return model
 
 def create_analysis_prompt() -> str:
-    """Create the analysis prompt for Gemini."""
-    return """Analyze the provided manga page image. Your task is to extract all dialogue, sound effects, and structural metadata, and format it into a single, comprehensive JSON object.
+    """Create the comprehensive analysis prompt for Gemini with advanced dubbing features."""
+    return """You are an expert Manga Analysis and Dubbing Orchestration AI. Analyze the provided manga page image and generate a comprehensive JSON object with ALL dialogues, emotional context, timing, visual synchronization, and highlighting data.
 
-**CRITICAL RULES FOR DUBBING METADATA:**
-1.  **Pacing (`time_gap_before_s`):** Estimate this value based on visual cues (e.g., character reactions, panel density, dialogue length, dramatic pauses). A value of `0.0` is for immediate speech; `2.0-3.0` is for a long, dramatic pause or scene transition.
-2.  **Emotion (`type`, `intensity`):** Infer the emotional state from facial expressions, body language, text bubble style (spikes, waves), and font size. `intensity` should reflect how powerful the emotion is (e.g., a whisper is low intensity; a yell is high intensity).
-3.  **Local TTS Mapping (`speech`):** The `speech` object parameters (`speed`, `volume`, `pitch`) must be optimized for a local, rule-based Text-to-Speech (TTS) engine (like pyttsx3) to convey the emotion.
-    * **YELL/EXCITEMENT:** Should have `speed > 1.0` and `volume > 1.0`.
-    * **CALM/SADNESS:** Should have `speed < 1.0` and `volume` around `1.0`.
-    * **WHISPER:** Should have `volume < 1.0`.
+**CRITICAL RULES FOR RELIABLE DUBBING:**
+1.  **Dialogue Completeness:** Include ALL text from ALL balloons and narration boxes on the page.
+2.  **Panel Synchronization:** For EVERY dialogue, assign a **panel_id** (e.g., "page_000_panel_01", "page_000_panel_02"). This ID is used to identify which panel/area the dialogue belongs to for video synchronization.
+3.  **Voice Assignment:** You MUST infer and include the **speaker_gender** (Male, Female, Narrator, Unknown) based on the character's visual appearance, name, and dialogue context.
+4.  **Pacing/Realism:** To ensure natural local TTS output, keep the **speech.speed** tightly constrained between **0.95 and 1.05** (1.0 is default pace). Only use extreme values (0.8 or 1.2+) for very dramatic moments.
+5.  **Text Highlighting (CRITICAL):** You MUST infer and include the exact pixel **bounding_box** of the text balloon or narration box in the format "x:y:w:h" (e.g., "100:200:300:50"). Coordinates should be relative to the full page image dimensions.
+6.  **Timing (`time_gap_before_s`):** Estimate based on visual cues (character reactions, panel density, dialogue length, dramatic pauses). Range: 0.0 to 3.0 seconds.
+7.  **Emotion (`type`, `intensity`):** Infer from facial expressions, body language, text bubble style (spikes for yelling, waves for thinking), and font size/style.
 
 **STRICT OUTPUT CONSTRAINTS:**
-1.  **NO EXTRA TEXT:** Output must be *only* the raw JSON object. **Do not** include markdown code block delimiters (e.g., ```json), explanations, or any conversational text before or after the JSON.
-2.  **NO PANEL TRACKING:** The final output **must not** contain any keys related to 'panel'. The output must contain a single, sequential `dialogs` array for the entire page.
-3.  **READING ORDER:** Process all dialogue strictly in the top-to-bottom, left-to-right reading order (Japanese manga style).
+1.  **NO EXTRA TEXT:** Output must be *only* the raw JSON object. **Do not** include markdown code block delimiters (e.g., ```json), explanations, or any conversational text.
+2.  **READING ORDER:** Process all dialogue strictly in the correct manga reading order (typically right-to-left, top-to-bottom for Japanese manga, or left-to-right for Western manga).
+3.  **ALL PAGES:** If analyzing multiple pages, output data for ALL pages, even if a page has no dialogue (use empty "dialogs": []).
 
 **JSON SCHEMA MANDATE:**
 The output JSON must strictly adhere to the following schema. **All fields are mandatory** and must be populated. Use the specified value ranges for all numerical fields.
@@ -97,14 +98,17 @@ The output JSON must strictly adhere to the following schema. **All fields are m
 {
   "page_type": "story" | "cover" | "info" | "blank",
   "page_number": 1,
+  "page_file_name": "page_000.png",
   "dialogs": [
     {
       "sequence": 1,
+      "panel_id": "page_000_panel_01",
       "text": "[Exact dialogue or SFX text from the bubble/area]",
       "speaker": "Character Name" | "Narrator" | "SFX" | "UNKNOWN",
+      "speaker_gender": "Male" | "Female" | "Narrator" | "Unknown",
       "time_gap_before_s": 0.5,
       "emotion": {
-        "type": "calm" | "angry" | "yell" | "sad" | "excitement" | "narration" | "neutral" | "whisper" | "fear" | "surprise",
+        "type": "calm" | "angry" | "yell" | "sad" | "excitement" | "narration" | "neutral" | "whisper" | "fear" | "surprise" | "awe" | "determination",
         "intensity": 0.8,
         "stability": 0.8,
         "style": 0.3,
@@ -118,7 +122,8 @@ The output JSON must strictly adhere to the following schema. **All fields are m
       "position": {
         "vertical": "top" | "middle" | "bottom",
         "horizontal": "left" | "center" | "right"
-      }
+      },
+      "bounding_box": "x:y:w:h"
     }
   ]
 }
@@ -128,8 +133,14 @@ The output JSON must strictly adhere to the following schema. **All fields are m
 - emotion.intensity: 0.1 to 1.0
 - emotion.stability: 0.1 to 1.0
 - emotion.style: 0.1 to 1.0
-- speech.speed: 0.8 to 1.3
-- speech.volume: 0.8 to 1.2
+- speech.speed: 0.95 to 1.05 (constrained for natural TTS)
+- speech.volume: 0.9 to 1.1 (constrained for natural TTS)
+- bounding_box: "x:y:w:h" format (e.g., "100:200:300:50" means x=100px, y=200px, width=300px, height=50px)
+
+**EXAMPLE bounding_box VALUES:**
+- Top-right narration: "1400:100:400:50"
+- Middle-left dialogue: "100:450:600:80"
+- Bottom-center dialogue: "700:900:500:100"
 
 **REMEMBER:** Output ONLY the JSON object. No markdown, no explanations, no extra text.
 """

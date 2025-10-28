@@ -52,13 +52,13 @@ def test_pipeline(pdf_path: str):
         print(f"❌ PDF conversion failed: {e}")
         return
     
-    # Step 3: Process with Gemini (first page only for testing)
+    # Step 3: Process with Gemini (ALL pages)
     print("Step 3: Analyzing with Gemini AI...")
-    print(f"   Processing page 1/{len(image_paths)}...\n")
+    print(f"   Processing {len(image_paths)} pages...\n")
     
     try:
-        # Process first page
-        result = process_manga_pages([image_paths[0]], test_job_id)
+        # Process ALL pages
+        result = process_manga_pages(image_paths, test_job_id)
         
         print("📊 GEMINI ANALYSIS RESULTS:")
         print("="*60)

@@ -1,72 +1,82 @@
 {
   "page_type": "story",
   "page_number": 1,
+  "page_file_name": "page_000.png",
   "dialogs": [
     {
       "sequence": 1,
+      "panel_id": "page_000_panel_01",
       "text": "The sorcery emperor has returned!!",
       "speaker": "Narrator",
+      "speaker_gender": "Narrator",
       "time_gap_before_s": 0.5,
       "emotion": {
         "type": "excitement",
         "intensity": 0.9,
-        "stability": 0.7,
-        "style": 0.6,
-        "description": "Exclamation with a jagged speech bubble indicates excitement."
+        "stability": 0.8,
+        "style": 0.7,
+        "description": "Excited announcement of the emperor's return."
       },
       "speech": {
-        "speed": 1.1,
-        "volume": 1.1,
-        "pitch": "high"
+        "speed": 1.0,
+        "volume": 1.0,
+        "pitch": "medium"
       },
       "position": {
         "vertical": "top",
         "horizontal": "right"
-      }
+      },
+      "bounding_box": "87:743:402:152"
     },
     {
       "sequence": 2,
+      "panel_id": "page_000_panel_01",
       "text": "He and the other magicknights sent that invading army packing!!",
       "speaker": "Narrator",
+      "speaker_gender": "Narrator",
       "time_gap_before_s": 0.3,
       "emotion": {
-        "type": "excitement",
-        "intensity": 0.8,
-        "stability": 0.7,
-        "style": 0.5,
-        "description": "Excited narration of a victory."
+        "type": "narration",
+        "intensity": 0.7,
+        "stability": 0.8,
+        "style": 0.3,
+        "description": "Narrating the defeat of the invading army."
       },
       "speech": {
         "speed": 1.0,
-        "volume": 1.1,
+        "volume": 1.0,
         "pitch": "medium"
       },
       "position": {
         "vertical": "top",
         "horizontal": "left"
-      }
+      },
+      "bounding_box": "196:111:325:312"
     },
     {
       "sequence": 3,
+      "panel_id": "page_000_panel_01",
       "text": "TWO CHEERS FOR OUR HERO, THE SORCERY EMPEROR !!!",
       "speaker": "Narrator",
-      "time_gap_before_s": 0.5,
+      "speaker_gender": "Narrator",
+      "time_gap_before_s": 0.3,
       "emotion": {
-        "type": "yell",
+        "type": "excitement",
         "intensity": 1.0,
         "stability": 0.9,
         "style": 0.8,
-        "description": "Loud cheering and celebration."
+        "description": "Loud cheers for the sorcery emperor."
       },
       "speech": {
-        "speed": 1.2,
-        "volume": 1.2,
+        "speed": 1.0,
+        "volume": 1.0,
         "pitch": "high"
       },
       "position": {
         "vertical": "middle",
         "horizontal": "right"
-      }
+      },
+      "bounding_box": "659:630:323:318"
     }
   ]
 }

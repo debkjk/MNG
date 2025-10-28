@@ -19,7 +19,7 @@ TEMP_AUDIO_DIR.mkdir(parents=True, exist_ok=True)
 
 # --- Configuration ---
 # TTS Configuration
-BASE_WPM = 180  # Base Words Per Minute for speech rate
+BASE_WPM = 130  # Base Words Per Minute for speech rate (slower for clearer, more natural speech)
 
 # Voice Indices - UPDATE THESE after running check_voices.py
 MALE_VOICE_INDEX = 0      # Default: First male voice
@@ -51,31 +51,42 @@ def initialize_tts_engine():
         logging.error(f"❌ Failed to initialize TTS engine: {e}")
         raise
 
-def get_voice_id(engine, speaker_name: str) -> str:
+def get_voice_id(engine, dialogue: Dict[str, Any]) -> str:
     """
-    Select appropriate voice based on speaker name.
+    Select appropriate voice based on speaker_gender field from Gemini.
     
     Args:
         engine: pyttsx3 engine instance
-        speaker_name: Name of the speaker
+        dialogue: Dialogue dictionary containing speaker_gender field
     
     Returns:
         Voice ID string
     """
     voices = engine.getProperty('voices')
     
-    # Rule-based voice selection
-    speaker_lower = speaker_name.lower()
+    # CRITICAL: Use speaker_gender field from Gemini analysis
+    speaker_gender = dialogue.get('speaker_gender', 'Unknown')
     
-    if speaker_name in ["Narrator", "SFX", "UNKNOWN"]:
-        return voices[VOICE_INDICES['narrator']].id
-    
-    # Gender detection from name
-    if any(word in speaker_lower for word in ['woman', 'girl', 'female', 'lady', 'mother', 'sister']):
+    # Direct gender-based voice selection
+    if speaker_gender == 'Female':
         return voices[VOICE_INDICES['female']].id
-    
-    # Default to male voice
-    return voices[VOICE_INDICES['male']].id
+    elif speaker_gender == 'Male':
+        return voices[VOICE_INDICES['male']].id
+    elif speaker_gender == 'Narrator':
+        return voices[VOICE_INDICES['narrator']].id
+    else:
+        # Fallback: try to infer from speaker name if gender unknown
+        speaker_name = dialogue.get('speaker', 'UNKNOWN')
+        speaker_lower = speaker_name.lower()
+        
+        if speaker_name in ["Narrator", "SFX", "UNKNOWN"]:
+            return voices[VOICE_INDICES['narrator']].id
+        
+        if any(word in speaker_lower for word in ['woman', 'girl', 'female', 'lady', 'mother', 'sister']):
+            return voices[VOICE_INDICES['female']].id
+        
+        # Default to male voice
+        return voices[VOICE_INDICES['male']].id
 
 def generate_audio_tracks(analysis_results: Dict[str, Any], job_id: str) -> Dict[str, Any]:
     """
@@ -123,8 +134,8 @@ def generate_audio_tracks(analysis_results: Dict[str, Any], job_id: str) -> Dict
                 continue
             
             try:
-                # Set voice
-                voice_id = get_voice_id(engine, speaker)
+                # Set voice based on speaker_gender from Gemini
+                voice_id = get_voice_id(engine, dialogue)
                 engine.setProperty('voice', voice_id)
                 
                 # Set speed
@@ -171,10 +182,12 @@ def generate_audio_tracks(analysis_results: Dict[str, Any], job_id: str) -> Dict
         raise
     
     # STEP 3: Convert WAV to MP3 and merge with timing gaps
-    logging.info(f"\n   🔗 Merging audio files with timing gaps...")
+    # CRITICAL: Track timing data for video highlighting
+    logging.info(f"\n   🔗 Merging audio files with timing gaps and injecting timing data...")
     
     final_audio = AudioSegment.silent(duration=100)  # Start with small buffer
     successful_dialogues = 0
+    current_time_s = 0.1  # Start time in seconds (after initial buffer)
     
     for item in temp_files:
         dialogue = item["dialogue"]
@@ -186,17 +199,27 @@ def generate_audio_tracks(analysis_results: Dict[str, Any], job_id: str) -> Dict
         if time_gap_s > 0.1:
             time_gap_ms = int(time_gap_s * 1000)
             final_audio += AudioSegment.silent(duration=time_gap_ms)
+            current_time_s += time_gap_s
             logging.info(f"   ⏱️  Added {time_gap_s:.1f}s pause before dialogue {sequence}")
         
         # Add speech audio
         try:
             if item["file"].exists():
                 speech_audio = AudioSegment.from_wav(str(item["file"]))
+                audio_duration_s = len(speech_audio) / 1000.0  # Convert ms to seconds
+                
+                # CRITICAL: Inject timing data for video highlighting
+                dialogue["audio_start_s"] = round(current_time_s, 2)
+                dialogue["audio_duration_s"] = round(audio_duration_s, 2)
+                
                 final_audio += speech_audio
+                current_time_s += audio_duration_s
                 successful_dialogues += 1
                 
                 # Store audio path in dialogue metadata
                 dialogue["audio_path"] = str(item["file"])
+                
+                logging.info(f"   🎬 Dialogue {sequence}: start={dialogue['audio_start_s']}s, duration={dialogue['audio_duration_s']}s")
             else:
                 logging.warning(f"⚠️  Audio file not created: {item['file']}")
         except Exception as e:

@@ -16,7 +16,60 @@ AUDIO_DIR = STATIC_DIR / 'audio'
 
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-def generate_dubbed_video(job_id: str, page_images: list = None) -> str:
+def build_drawbox_filters(analysis_results: Dict[str, Any], video_duration_s: float) -> str:
+    """
+    Build FFmpeg drawbox filter string for highlighting text balloons during speech.
+    
+    Args:
+        analysis_results: Dictionary containing pages with dialogues (including timing and bounding_box)
+        video_duration_s: Total duration of the video
+    
+    Returns:
+        FFmpeg filter string with drawbox commands
+    """
+    drawbox_filters = []
+    
+    for page in analysis_results.get("pages", []):
+        for dialogue in page.get("dialogs", []):
+            # Get timing data (injected by TTS service)
+            audio_start_s = dialogue.get("audio_start_s")
+            audio_duration_s = dialogue.get("audio_duration_s")
+            bounding_box = dialogue.get("bounding_box")
+            
+            if not all([audio_start_s is not None, audio_duration_s, bounding_box]):
+                logging.warning(f"⚠️  Skipping highlight for dialogue {dialogue.get('sequence')}: missing timing or bounding_box data")
+                continue
+            
+            # Parse bounding box "x:y:w:h"
+            try:
+                parts = bounding_box.split(":")
+                if len(parts) != 4:
+                    logging.warning(f"⚠️  Invalid bounding_box format: {bounding_box}")
+                    continue
+                
+                x, y, w, h = map(int, parts)
+                end_time_s = audio_start_s + audio_duration_s
+                
+                # Create drawbox filter with time-based enable expression
+                # Color: yellow with 50% transparency (yellow@0.5)
+                # Thickness: 3 pixels
+                drawbox_filter = f"drawbox=x={x}:y={y}:w={w}:h={h}:color=yellow@0.5:t=3:enable='between(t,{audio_start_s},{end_time_s})'"
+                drawbox_filters.append(drawbox_filter)
+                
+                logging.info(f"   📦 Added highlight: dialogue {dialogue.get('sequence')} at {audio_start_s}s-{end_time_s}s, box={bounding_box}")
+                
+            except (ValueError, IndexError) as e:
+                logging.warning(f"⚠️  Failed to parse bounding_box '{bounding_box}': {e}")
+                continue
+    
+    if not drawbox_filters:
+        logging.info("   ℹ️  No highlights to add (no bounding_box data or timing)")
+        return ""
+    
+    # Join all drawbox filters with commas
+    return "," + ",".join(drawbox_filters)
+
+def generate_dubbed_video(job_id: str, page_images: list = None, analysis_results: Dict[str, Any] = None) -> str:
     """
     Generates the final video by stitching manga page images and merging the final audio track.
     Requires FFmpeg and pydub to be installed.
@@ -100,14 +153,24 @@ def generate_dubbed_video(job_id: str, page_images: list = None) -> str:
         escaped_last = last_path.replace("'", "'\\''")
         f.write(f"file '{escaped_last}'\n")
         
-    # 6. Command to create the video slideshow
+    # 6. Build drawbox filters for text highlighting (if analysis_results provided)
+    drawbox_filter_str = ""
+    if analysis_results:
+        logging.info(f"\n   🎨 Building text balloon highlighting filters...")
+        drawbox_filter_str = build_drawbox_filters(analysis_results, audio_duration_s)
+    
+    # 7. Command to create the video slideshow with optional highlighting
     logging.info(f"\n   🎬 Step 1/2: Generating video slideshow from images...")
+    
+    # Build video filter: scale + pad + optional drawbox highlighting
+    vf_filter = f"scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2{drawbox_filter_str}"
+    
     slideshow_cmd = [
         "ffmpeg", 
         "-f", "concat",
         "-safe", "0", 
         "-i", str(temp_list_file), 
-        "-vf", f"scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2",
+        "-vf", vf_filter,
         "-c:v", "libx264", 
         "-pix_fmt", "yuv420p", 
         "-r", "25",  # Framerate
@@ -174,17 +237,16 @@ def generate_dubbed_video(job_id: str, page_images: list = None) -> str:
 
 def generate_dubbed_video_from_analysis(analysis_results: Dict[str, Any], job_id: str) -> str:
     """
-    Generate video from analysis results dictionary.
+    Generate video from analysis results dictionary with text balloon highlighting.
     
     Args:
-        analysis_results: Dictionary containing pages with image paths
+        analysis_results: Dictionary containing pages with dialogues (including timing and bounding_box)
         job_id: Unique job identifier
     
     Returns:
         Path to the generated video file
     """
-    # SIMPLIFIED: Let generate_dubbed_video() auto-discover images
-    # It will search in static/pages/job_id/ for page_*.png files
-    # This is where the PDF processor saves them
+    # Pass analysis_results to enable text balloon highlighting
+    # The function will auto-discover images from static/pages/job_id/
     
-    return generate_dubbed_video(job_id, page_images=None)
+    return generate_dubbed_video(job_id, page_images=None, analysis_results=analysis_results)

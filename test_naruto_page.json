@@ -1,0 +1,75 @@
+[
+  {
+    "page_number": 1,
+    "page_file_name": "page_000.png",
+    "page_type": "story",
+    "dialogs": [
+      {
+        "sequence": 1,
+        "panel_id": "page_000_panel_01",
+        "text": "THE US THAT FOUGHT AND QUARRELLED OVER THE SMALLEST THINGS... ARE NOW ABLE TO SHARE THE PAIN IN EACH OTHER'S HEARTS.",
+        "speaker": "Naruto",
+        "speaker_gender": "Male",
+        "time_gap_before_s": 0.5,
+        "emotion": {"type": "determination", "intensity": 0.8},
+        "speech": {"speed": 1.0, "volume": 1.0, "pitch": "medium"},
+        "bounding_box": "770:40:940:175"
+      },
+      {
+        "sequence": 2,
+        "panel_id": "page_000_panel_02",
+        "text": "ON MY JOURNEY AROUND THE WORLD, I NOTICED THAT ALL THESE FEELINGS OF MINE AREN'T JUST ABOUT US, I'M SURE IT'S THE SAME FOR EVERYTHING ELSE.",
+        "speaker": "Naruto",
+        "speaker_gender": "Male",
+        "time_gap_before_s": 1.0,
+        "emotion": {"type": "realization", "intensity": 0.7},
+        "speech": {"speed": 0.98, "volume": 1.0, "pitch": "medium"},
+        "bounding_box": "740:340:960:500"
+      },
+      {
+        "sequence": 3,
+        "panel_id": "page_000_panel_03",
+        "text": "BUT... THERE AREN'T A LOT OF PEOPLE LIKE YOU. AND THINGS WON'T ALWAYS GO AS PLANNED, LOOK AT US.",
+        "speaker": "Sasuke",
+        "speaker_gender": "Male",
+        "time_gap_before_s": 0.8,
+        "emotion": {"type": "resignation", "intensity": 0.6},
+        "speech": {"speed": 0.95, "volume": 0.95, "pitch": "low"},
+        "bounding_box": "200:200:440:300"
+      },
+      {
+        "sequence": 4,
+        "panel_id": "page_000_panel_03",
+        "text": "IT'S ESPECIALLY TRUE WHEN IT COMES TO BIGGER THINGS.",
+        "speaker": "Sasuke",
+        "speaker_gender": "Male",
+        "time_gap_before_s": 0.5,
+        "emotion": {"type": "pensive", "intensity": 0.6},
+        "speech": {"speed": 0.95, "volume": 0.95, "pitch": "low"},
+        "bounding_box": "460:40:670:180"
+      },
+      {
+        "sequence": 5,
+        "panel_id": "page_000_panel_04",
+        "text": "HERE... I'M RE-TURNING THIS.",
+        "speaker": "Naruto",
+        "speaker_gender": "Male",
+        "time_gap_before_s": 0.5,
+        "emotion": {"type": "resolve", "intensity": 0.8},
+        "speech": {"speed": 1.05, "volume": 1.0, "pitch": "medium"},
+        "bounding_box": "700:580:880:710"
+      },
+      {
+        "sequence": 6,
+        "panel_id": "page_000_panel_05",
+        "text": "I'LL KEEP THIS UNTIL... WE REALLY SETTLE THINGS BETWEEN US.",
+        "speaker": "Sasuke",
+        "speaker_gender": "Male",
+        "time_gap_before_s": 0.8,
+        "emotion": {"type": "challenge", "intensity": 0.9},
+        "speech": {"speed": 0.98, "volume": 1.05, "pitch": "low"},
+        "bounding_box": "700:200:900:340"
+      }
+    ]
+  }
+]
