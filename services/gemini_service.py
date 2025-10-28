@@ -89,8 +89,9 @@ def create_analysis_prompt() -> str:
 
 **STRICT OUTPUT CONSTRAINTS:**
 1.  **NO EXTRA TEXT:** Output must be *only* the raw JSON object. **Do not** include markdown code block delimiters (e.g., ```json), explanations, or any conversational text.
-2.  **READING ORDER:** Process all dialogue strictly in the correct manga reading order (typically right-to-left, top-to-bottom for Japanese manga, or left-to-right for Western manga).
+2.  **READING ORDER (CRITICAL):** Process all dialogue strictly in the CORRECT reading order. For Western manga (English text): LEFT-TO-RIGHT, TOP-TO-BOTTOM. Read each panel's text bubbles from left to right, then move to the next panel. The sequence numbers MUST reflect the actual reading order. If a sentence is split across multiple bubbles, keep them in order!
 3.  **ALL PAGES:** If analyzing multiple pages, output data for ALL pages, even if a page has no dialogue (use empty "dialogs": []).
+4.  **BOUNDING BOX (MANDATORY):** Every dialogue MUST have a bounding_box. Estimate the pixel coordinates of the text balloon/box. This is REQUIRED for highlighting.
 
 **JSON SCHEMA MANDATE:**
 The output JSON must strictly adhere to the following schema. **All fields are mandatory** and must be populated. Use the specified value ranges for all numerical fields.

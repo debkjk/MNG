@@ -7,15 +7,15 @@
       "sequence": 1,
       "panel_id": "page_000_panel_01",
       "text": "The sorcery emperor has returned!!",
-      "speaker": "Narrator",
-      "speaker_gender": "Narrator",
+      "speaker": "UNKNOWN",
+      "speaker_gender": "Unknown",
       "time_gap_before_s": 0.5,
       "emotion": {
         "type": "excitement",
         "intensity": 0.9,
         "stability": 0.8,
         "style": 0.7,
-        "description": "Excited announcement of the emperor's return."
+        "description": "Excited announcement."
       },
       "speech": {
         "speed": 1.0,
@@ -26,21 +26,21 @@
         "vertical": "top",
         "horizontal": "right"
       },
-      "bounding_box": "87:743:402:152"
+      "bounding_box": "809:70:315:140"
     },
     {
       "sequence": 2,
       "panel_id": "page_000_panel_01",
       "text": "He and the other magicknights sent that invading army packing!!",
-      "speaker": "Narrator",
-      "speaker_gender": "Narrator",
+      "speaker": "UNKNOWN",
+      "speaker_gender": "Unknown",
       "time_gap_before_s": 0.3,
       "emotion": {
-        "type": "narration",
+        "type": "neutral",
         "intensity": 0.7,
-        "stability": 0.8,
+        "stability": 0.7,
         "style": 0.3,
-        "description": "Narrating the defeat of the invading army."
+        "description": "Describing the situation."
       },
       "speech": {
         "speed": 1.0,
@@ -51,21 +51,21 @@
         "vertical": "top",
         "horizontal": "left"
       },
-      "bounding_box": "196:111:325:312"
+      "bounding_box": "45:160:300:250"
     },
     {
       "sequence": 3,
       "panel_id": "page_000_panel_01",
       "text": "TWO CHEERS FOR OUR HERO, THE SORCERY EMPEROR !!!",
-      "speaker": "Narrator",
-      "speaker_gender": "Narrator",
-      "time_gap_before_s": 0.3,
+      "speaker": "UNKNOWN",
+      "speaker_gender": "Unknown",
+      "time_gap_before_s": 0.4,
       "emotion": {
-        "type": "excitement",
-        "intensity": 1.0,
+        "type": "yell",
+        "intensity": 0.9,
         "stability": 0.9,
         "style": 0.8,
-        "description": "Loud cheers for the sorcery emperor."
+        "description": "Cheering loudly."
       },
       "speech": {
         "speed": 1.0,
@@ -76,7 +76,7 @@
         "vertical": "middle",
         "horizontal": "right"
       },
-      "bounding_box": "659:630:323:318"
+      "bounding_box": "727:596:310:250"
     }
   ]
 }

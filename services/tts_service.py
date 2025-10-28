@@ -51,42 +51,43 @@ def initialize_tts_engine():
         logging.error(f"❌ Failed to initialize TTS engine: {e}")
         raise
 
-def get_voice_id(engine, dialogue: Dict[str, Any]) -> str:
+def get_voice_id(engine, dialogue: Dict[str, Any], speaker_voice_map: Dict[str, int]) -> str:
     """
-    Select appropriate voice based on speaker_gender field from Gemini.
+    Select appropriate voice based on speaker, with consistent voice per character.
     
     Args:
         engine: pyttsx3 engine instance
-        dialogue: Dialogue dictionary containing speaker_gender field
+        dialogue: Dialogue dictionary containing speaker and speaker_gender
+        speaker_voice_map: Dictionary mapping speaker names to voice indices
     
     Returns:
         Voice ID string
     """
     voices = engine.getProperty('voices')
+    speaker_name = dialogue.get('speaker', 'UNKNOWN')
     
-    # CRITICAL: Use speaker_gender field from Gemini analysis
+    # Check if this speaker already has an assigned voice
+    if speaker_name in speaker_voice_map:
+        voice_idx = speaker_voice_map[speaker_name]
+        return voices[voice_idx].id
+    
+    # Assign new voice based on speaker_gender
     speaker_gender = dialogue.get('speaker_gender', 'Unknown')
     
-    # Direct gender-based voice selection
     if speaker_gender == 'Female':
-        return voices[VOICE_INDICES['female']].id
+        voice_idx = VOICE_INDICES['female']
     elif speaker_gender == 'Male':
-        return voices[VOICE_INDICES['male']].id
+        voice_idx = VOICE_INDICES['male']
     elif speaker_gender == 'Narrator':
-        return voices[VOICE_INDICES['narrator']].id
+        voice_idx = VOICE_INDICES['narrator']
     else:
-        # Fallback: try to infer from speaker name if gender unknown
-        speaker_name = dialogue.get('speaker', 'UNKNOWN')
-        speaker_lower = speaker_name.lower()
-        
-        if speaker_name in ["Narrator", "SFX", "UNKNOWN"]:
-            return voices[VOICE_INDICES['narrator']].id
-        
-        if any(word in speaker_lower for word in ['woman', 'girl', 'female', 'lady', 'mother', 'sister']):
-            return voices[VOICE_INDICES['female']].id
-        
-        # Default to male voice
-        return voices[VOICE_INDICES['male']].id
+        # Fallback: alternate between voices for variety
+        # Use speaker name hash to consistently assign voice
+        voice_idx = VOICE_INDICES['male'] if hash(speaker_name) % 2 == 0 else VOICE_INDICES['female']
+    
+    # Store assignment for consistency
+    speaker_voice_map[speaker_name] = voice_idx
+    return voices[voice_idx].id
 
 def generate_audio_tracks(analysis_results: Dict[str, Any], job_id: str) -> Dict[str, Any]:
     """
@@ -114,6 +115,7 @@ def generate_audio_tracks(analysis_results: Dict[str, Any], job_id: str) -> Dict
     voices = engine.getProperty('voices')
     temp_files = []
     total_dialogues = 0
+    speaker_voice_map = {}  # Track voice assignments per speaker for consistency
     
     logging.info(f"\n🎤 Step 4/5: Generating audio with local TTS (OPTIMIZED)...")
     logging.info(f"   📝 Queuing audio generation commands (fast)...")
@@ -134,9 +136,11 @@ def generate_audio_tracks(analysis_results: Dict[str, Any], job_id: str) -> Dict
                 continue
             
             try:
-                # Set voice based on speaker_gender from Gemini
-                voice_id = get_voice_id(engine, dialogue)
+                # Set voice based on speaker with consistent assignment
+                voice_id = get_voice_id(engine, dialogue, speaker_voice_map)
                 engine.setProperty('voice', voice_id)
+                voice_name = [v.name for v in voices if v.id == voice_id][0] if voices else "Unknown"
+                logging.info(f"   🎤 {speaker}: Using voice '{voice_name}'")
                 
                 # Set speed
                 speech = dialogue.get("speech", {})

@@ -50,10 +50,10 @@ def build_drawbox_filters(analysis_results: Dict[str, Any], video_duration_s: fl
                 x, y, w, h = map(int, parts)
                 end_time_s = audio_start_s + audio_duration_s
                 
-                # Create drawbox filter with time-based enable expression
+                # Create drawbox filter with FILLED yellow box (not outline)
                 # Color: yellow with 50% transparency (yellow@0.5)
-                # Thickness: 3 pixels
-                drawbox_filter = f"drawbox=x={x}:y={y}:w={w}:h={h}:color=yellow@0.5:t=3:enable='between(t,{audio_start_s},{end_time_s})'"
+                # t=fill means FILL the box, not just outline
+                drawbox_filter = f"drawbox=x={x}:y={y}:w={w}:h={h}:color=yellow@0.5:t=fill:enable='between(t,{audio_start_s},{end_time_s})'"
                 drawbox_filters.append(drawbox_filter)
                 
                 logging.info(f"   📦 Added highlight: dialogue {dialogue.get('sequence')} at {audio_start_s}s-{end_time_s}s, box={bounding_box}")
@@ -133,21 +133,37 @@ def generate_dubbed_video(job_id: str, page_images: list = None, analysis_result
     num_images = len(image_files)
     logging.info(f"   📸 Found {num_images} images to process")
     
-    # 4. Calculate Duration per Image
-    # Each image gets an equal slice of the total audio duration.
-    single_image_duration = audio_duration_s / num_images
-    logging.info(f"   ⏱️  Each image will display for {single_image_duration:.2f} seconds")
+    # 4. Calculate Duration per Image based on dialogues
+    # If analysis_results provided, calculate per-page duration based on dialogues
+    page_durations = []
+    if analysis_results:
+        for page in analysis_results.get("pages", []):
+            page_duration = 0.0
+            for dialogue in page.get("dialogs", []):
+                page_duration += dialogue.get("time_gap_before_s", 0.0)
+                page_duration += dialogue.get("audio_duration_s", 0.0)
+            page_durations.append(max(page_duration, 1.0))  # Minimum 1 second per page
+        
+        logging.info(f"   ⏱️  Page durations calculated from dialogues: {[f'{d:.2f}s' for d in page_durations]}")
+    else:
+        # Fallback: equal distribution
+        single_image_duration = audio_duration_s / num_images
+        page_durations = [single_image_duration] * num_images
+        logging.info(f"   ⏱️  Each image will display for {single_image_duration:.2f} seconds")
 
-    # 5. Create a temporary FFmpeg concat demuxer file
+    # 5. Create a temporary FFmpeg concat demuxer file with per-page durations
     logging.info(f"   📝 Creating FFmpeg concat file...")
     with open(temp_list_file, "w") as f:
-        for image_path in image_files:
+        for idx, image_path in enumerate(image_files):
             # Use absolute path for FFmpeg
             abs_path = os.path.abspath(image_path)
             # Escape single quotes in path for FFmpeg
             escaped_path = abs_path.replace("'", "'\\''")
             f.write(f"file '{escaped_path}'\n")
-            f.write(f"duration {single_image_duration}\n")
+            # Use calculated duration for this specific page
+            duration = page_durations[idx] if idx < len(page_durations) else page_durations[-1]
+            f.write(f"duration {duration}\n")
+            logging.info(f"   📄 Page {idx+1}: {duration:.2f}s")
         # Add the last one again to ensure total video duration exactly matches
         last_path = os.path.abspath(image_files[-1])
         escaped_last = last_path.replace("'", "'\\''")

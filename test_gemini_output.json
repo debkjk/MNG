@@ -9,15 +9,15 @@
           "sequence": 1,
           "panel_id": "page_000_panel_01",
           "text": "The sorcery emperor has returned!!",
-          "speaker": "Narrator",
-          "speaker_gender": "Narrator",
+          "speaker": "UNKNOWN",
+          "speaker_gender": "Unknown",
           "time_gap_before_s": 0.5,
           "emotion": {
             "type": "excitement",
             "intensity": 0.9,
             "stability": 0.8,
             "style": 0.7,
-            "description": "Excited announcement of the emperor's return."
+            "description": "Excited announcement."
           },
           "speech": {
             "speed": 1.0,
@@ -28,21 +28,21 @@
             "vertical": "top",
             "horizontal": "right"
           },
-          "bounding_box": "87:743:402:152"
+          "bounding_box": "809:70:315:140"
         },
         {
           "sequence": 2,
           "panel_id": "page_000_panel_01",
           "text": "He and the other magicknights sent that invading army packing!!",
-          "speaker": "Narrator",
-          "speaker_gender": "Narrator",
+          "speaker": "UNKNOWN",
+          "speaker_gender": "Unknown",
           "time_gap_before_s": 0.3,
           "emotion": {
-            "type": "narration",
+            "type": "neutral",
             "intensity": 0.7,
-            "stability": 0.8,
+            "stability": 0.7,
             "style": 0.3,
-            "description": "Narrating the defeat of the invading army."
+            "description": "Describing the situation."
           },
           "speech": {
             "speed": 1.0,
@@ -53,21 +53,21 @@
             "vertical": "top",
             "horizontal": "left"
           },
-          "bounding_box": "196:111:325:312"
+          "bounding_box": "45:160:300:250"
         },
         {
           "sequence": 3,
           "panel_id": "page_000_panel_01",
           "text": "TWO CHEERS FOR OUR HERO, THE SORCERY EMPEROR !!!",
-          "speaker": "Narrator",
-          "speaker_gender": "Narrator",
-          "time_gap_before_s": 0.3,
+          "speaker": "UNKNOWN",
+          "speaker_gender": "Unknown",
+          "time_gap_before_s": 0.4,
           "emotion": {
-            "type": "excitement",
-            "intensity": 1.0,
+            "type": "yell",
+            "intensity": 0.9,
             "stability": 0.9,
             "style": 0.8,
-            "description": "Loud cheers for the sorcery emperor."
+            "description": "Cheering loudly."
           },
           "speech": {
             "speed": 1.0,
@@ -78,7 +78,7 @@
             "vertical": "middle",
             "horizontal": "right"
           },
-          "bounding_box": "659:630:323:318"
+          "bounding_box": "727:596:310:250"
         }
       ]
     },
@@ -99,7 +99,7 @@
             "intensity": 0.6,
             "stability": 0.7,
             "style": 0.3,
-            "description": "Curious tone."
+            "description": "Questioning the parade."
           },
           "speech": {
             "speed": 1.0,
@@ -110,21 +110,46 @@
             "vertical": "top",
             "horizontal": "right"
           },
-          "bounding_box": "768:116:249:119"
+          "bounding_box": "83:743:272:132"
         },
         {
           "sequence": 2,
           "panel_id": "page_000_panel_02",
+          "text": "Using magic like party favors...",
+          "speaker": "UNKNOWN",
+          "speaker_gender": "Unknown",
+          "time_gap_before_s": 0.3,
+          "emotion": {
+            "type": "neutral",
+            "intensity": 0.5,
+            "stability": 0.7,
+            "style": 0.3,
+            "description": "Observing the use of magic."
+          },
+          "speech": {
+            "speed": 1.0,
+            "volume": 1.0,
+            "pitch": "medium"
+          },
+          "position": {
+            "vertical": "top",
+            "horizontal": "center"
+          },
+          "bounding_box": "312:622:150:106"
+        },
+        {
+          "sequence": 3,
+          "panel_id": "page_000_panel_02",
           "text": "Apparently the emperor has returned triumphantly.",
           "speaker": "Narrator",
           "speaker_gender": "Narrator",
-          "time_gap_before_s": 0.8,
+          "time_gap_before_s": 1.0,
           "emotion": {
             "type": "narration",
-            "intensity": 0.8,
+            "intensity": 0.7,
             "stability": 0.8,
             "style": 0.3,
-            "description": "Narrative statement."
+            "description": "Narrating the emperor's return."
           },
           "speech": {
             "speed": 1.0,
@@ -135,32 +160,7 @@
             "vertical": "top",
             "horizontal": "left"
           },
-          "bounding_box": "64:397:221:118"
-        },
-        {
-          "sequence": 3,
-          "panel_id": "page_000_panel_02",
-          "text": "Using magic like party favors...",
-          "speaker": "UNKNOWN",
-          "speaker_gender": "Unknown",
-          "time_gap_before_s": 0.3,
-          "emotion": {
-            "type": "neutral",
-            "intensity": 0.5,
-            "stability": 0.6,
-            "style": 0.3,
-            "description": "Observational statement."
-          },
-          "speech": {
-            "speed": 1.0,
-            "volume": 1.0,
-            "pitch": "medium"
-          },
-          "position": {
-            "vertical": "top",
-            "horizontal": "right"
-          },
-          "bounding_box": "571:404:116:86"
+          "bounding_box": "70:500:265:132"
         },
         {
           "sequence": 4,
@@ -171,10 +171,10 @@
           "time_gap_before_s": 0.4,
           "emotion": {
             "type": "surprise",
-            "intensity": 0.7,
+            "intensity": 0.8,
             "stability": 0.7,
-            "style": 0.5,
-            "description": "Surprised reaction."
+            "style": 0.4,
+            "description": "Surprised by the emperor's return."
           },
           "speech": {
             "speed": 1.0,
@@ -182,10 +182,10 @@
             "pitch": "high"
           },
           "position": {
-            "vertical": "top",
+            "vertical": "middle",
             "horizontal": "left"
           },
-          "bounding_box": "292:573:105:70"
+          "bounding_box": "70:693:140:95"
         },
         {
           "sequence": 5,
@@ -195,11 +195,11 @@
           "speaker_gender": "Unknown",
           "time_gap_before_s": 0.7,
           "emotion": {
-            "type": "determination",
-            "intensity": 0.9,
+            "type": "neutral",
+            "intensity": 0.7,
             "stability": 0.8,
-            "style": 0.6,
-            "description": "Serious declaration."
+            "style": 0.3,
+            "description": "Explaining the reason for the kingdom's existence."
           },
           "speech": {
             "speed": 1.0,
@@ -210,7 +210,7 @@
             "vertical": "bottom",
             "horizontal": "left"
           },
-          "bounding_box": "141:836:222:121"
+          "bounding_box": "778:150:244:132"
         },
         {
           "sequence": 6,
@@ -222,9 +222,9 @@
           "emotion": {
             "type": "neutral",
             "intensity": 0.7,
-            "stability": 0.7,
-            "style": 0.4,
-            "description": "Solemn statement."
+            "stability": 0.8,
+            "style": 0.3,
+            "description": "Stating the reason for the kingdom's existence."
           },
           "speech": {
             "speed": 1.0,
@@ -235,7 +235,7 @@
             "vertical": "top",
             "horizontal": "right"
           },
-          "bounding_box": "707:693:223:120"
+          "bounding_box": "644:747:240:132"
         }
       ]
     }
