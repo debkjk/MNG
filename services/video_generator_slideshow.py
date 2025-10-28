@@ -30,14 +30,16 @@ def build_drawbox_filters(analysis_results: Dict[str, Any], video_duration_s: fl
     drawbox_filters = []
     
     for page in analysis_results.get("pages", []):
+        page_num = page.get("page_number", "?")
         for dialogue in page.get("dialogs", []):
             # Get timing data (injected by TTS service)
             audio_start_s = dialogue.get("audio_start_s")
             audio_duration_s = dialogue.get("audio_duration_s")
             bounding_box = dialogue.get("bounding_box")
+            sequence = dialogue.get("sequence", "?")
             
             if not all([audio_start_s is not None, audio_duration_s, bounding_box]):
-                logging.warning(f"⚠️  Skipping highlight for dialogue {dialogue.get('sequence')}: missing timing or bounding_box data")
+                logging.warning(f"⚠️  Skipping highlight for page {page_num}, dialogue {sequence}: audio_start={audio_start_s}, duration={audio_duration_s}, bbox={bounding_box}")
                 continue
             
             # Parse bounding box "x:y:w:h"

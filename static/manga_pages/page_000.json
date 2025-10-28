@@ -15,18 +15,18 @@
         "intensity": 0.9,
         "stability": 0.8,
         "style": 0.7,
-        "description": "Excited announcement."
+        "description": "Excited announcement, large font and exclamation marks."
       },
       "speech": {
         "speed": 1.0,
         "volume": 1.0,
-        "pitch": "medium"
+        "pitch": "high"
       },
       "position": {
         "vertical": "top",
         "horizontal": "right"
       },
-      "bounding_box": "809:70:315:140"
+      "bounding_box": "82:702:350:160"
     },
     {
       "sequence": 2,
@@ -34,13 +34,13 @@
       "text": "He and the other magicknights sent that invading army packing!!",
       "speaker": "UNKNOWN",
       "speaker_gender": "Unknown",
-      "time_gap_before_s": 0.3,
+      "time_gap_before_s": 0.7,
       "emotion": {
-        "type": "neutral",
-        "intensity": 0.7,
+        "type": "excitement",
+        "intensity": 0.8,
         "stability": 0.7,
-        "style": 0.3,
-        "description": "Describing the situation."
+        "style": 0.6,
+        "description": "Excited announcement of victory."
       },
       "speech": {
         "speed": 1.0,
@@ -51,7 +51,7 @@
         "vertical": "top",
         "horizontal": "left"
       },
-      "bounding_box": "45:160:300:250"
+      "bounding_box": "225:36:370:270"
     },
     {
       "sequence": 3,
@@ -59,24 +59,24 @@
       "text": "TWO CHEERS FOR OUR HERO, THE SORCERY EMPEROR !!!",
       "speaker": "UNKNOWN",
       "speaker_gender": "Unknown",
-      "time_gap_before_s": 0.4,
+      "time_gap_before_s": 0.8,
       "emotion": {
         "type": "yell",
-        "intensity": 0.9,
+        "intensity": 1.0,
         "stability": 0.9,
         "style": 0.8,
-        "description": "Cheering loudly."
+        "description": "Loud cheering, large font and exclamation marks."
       },
       "speech": {
         "speed": 1.0,
-        "volume": 1.0,
+        "volume": 1.1,
         "pitch": "high"
       },
       "position": {
         "vertical": "middle",
         "horizontal": "right"
       },
-      "bounding_box": "727:596:310:250"
+      "bounding_box": "695:640:300:350"
     }
   ]
 }

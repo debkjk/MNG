@@ -15,7 +15,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from services.pdf_processor import convert_pdf_to_images, validate_pdf
 from services.gemini_service import process_manga_pages
-from services.tts_service import generate_audio_tracks
+from services.rapidapi_tts_service import generate_audio_tracks  # Using RapidAPI TTS
 from services.video_generator_slideshow import generate_dubbed_video_from_analysis
 
 def test_pipeline(pdf_path: str):

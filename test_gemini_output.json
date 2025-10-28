@@ -17,18 +17,18 @@
             "intensity": 0.9,
             "stability": 0.8,
             "style": 0.7,
-            "description": "Excited announcement."
+            "description": "Excited announcement, large font and exclamation marks."
           },
           "speech": {
             "speed": 1.0,
             "volume": 1.0,
-            "pitch": "medium"
+            "pitch": "high"
           },
           "position": {
             "vertical": "top",
             "horizontal": "right"
           },
-          "bounding_box": "809:70:315:140"
+          "bounding_box": "82:702:350:160"
         },
         {
           "sequence": 2,
@@ -36,13 +36,13 @@
           "text": "He and the other magicknights sent that invading army packing!!",
           "speaker": "UNKNOWN",
           "speaker_gender": "Unknown",
-          "time_gap_before_s": 0.3,
+          "time_gap_before_s": 0.7,
           "emotion": {
-            "type": "neutral",
-            "intensity": 0.7,
+            "type": "excitement",
+            "intensity": 0.8,
             "stability": 0.7,
-            "style": 0.3,
-            "description": "Describing the situation."
+            "style": 0.6,
+            "description": "Excited announcement of victory."
           },
           "speech": {
             "speed": 1.0,
@@ -53,7 +53,7 @@
             "vertical": "top",
             "horizontal": "left"
           },
-          "bounding_box": "45:160:300:250"
+          "bounding_box": "225:36:370:270"
         },
         {
           "sequence": 3,
@@ -61,24 +61,24 @@
           "text": "TWO CHEERS FOR OUR HERO, THE SORCERY EMPEROR !!!",
           "speaker": "UNKNOWN",
           "speaker_gender": "Unknown",
-          "time_gap_before_s": 0.4,
+          "time_gap_before_s": 0.8,
           "emotion": {
             "type": "yell",
-            "intensity": 0.9,
+            "intensity": 1.0,
             "stability": 0.9,
             "style": 0.8,
-            "description": "Cheering loudly."
+            "description": "Loud cheering, large font and exclamation marks."
           },
           "speech": {
             "speed": 1.0,
-            "volume": 1.0,
+            "volume": 1.1,
             "pitch": "high"
           },
           "position": {
             "vertical": "middle",
             "horizontal": "right"
           },
-          "bounding_box": "727:596:310:250"
+          "bounding_box": "695:640:300:350"
         }
       ]
     },
@@ -99,7 +99,7 @@
             "intensity": 0.6,
             "stability": 0.7,
             "style": 0.3,
-            "description": "Questioning the parade."
+            "description": "Curious questioning."
           },
           "speech": {
             "speed": 1.0,
@@ -110,7 +110,7 @@
             "vertical": "top",
             "horizontal": "right"
           },
-          "bounding_box": "83:743:272:132"
+          "bounding_box": "807:598:204:150"
         },
         {
           "sequence": 2,
@@ -124,7 +124,7 @@
             "intensity": 0.5,
             "stability": 0.7,
             "style": 0.3,
-            "description": "Observing the use of magic."
+            "description": "Observational statement."
           },
           "speech": {
             "speed": 1.0,
@@ -135,7 +135,7 @@
             "vertical": "top",
             "horizontal": "center"
           },
-          "bounding_box": "312:622:150:106"
+          "bounding_box": "431:601:121:93"
         },
         {
           "sequence": 3,
@@ -143,13 +143,13 @@
           "text": "Apparently the emperor has returned triumphantly.",
           "speaker": "Narrator",
           "speaker_gender": "Narrator",
-          "time_gap_before_s": 1.0,
+          "time_gap_before_s": 0.7,
           "emotion": {
             "type": "narration",
             "intensity": 0.7,
             "stability": 0.8,
             "style": 0.3,
-            "description": "Narrating the emperor's return."
+            "description": "Narrative statement."
           },
           "speech": {
             "speed": 1.0,
@@ -160,7 +160,7 @@
             "vertical": "top",
             "horizontal": "left"
           },
-          "bounding_box": "70:500:265:132"
+          "bounding_box": "275:100:191:146"
         },
         {
           "sequence": 4,
@@ -173,33 +173,8 @@
             "type": "surprise",
             "intensity": 0.8,
             "stability": 0.7,
-            "style": 0.4,
-            "description": "Surprised by the emperor's return."
-          },
-          "speech": {
-            "speed": 1.0,
-            "volume": 1.0,
-            "pitch": "high"
-          },
-          "position": {
-            "vertical": "middle",
-            "horizontal": "left"
-          },
-          "bounding_box": "70:693:140:95"
-        },
-        {
-          "sequence": 5,
-          "panel_id": "page_000_panel_03",
-          "text": "is because the sorcery emperor is here",
-          "speaker": "UNKNOWN",
-          "speaker_gender": "Unknown",
-          "time_gap_before_s": 0.7,
-          "emotion": {
-            "type": "neutral",
-            "intensity": 0.7,
-            "stability": 0.8,
-            "style": 0.3,
-            "description": "Explaining the reason for the kingdom's existence."
+            "style": 0.5,
+            "description": "Surprised reaction."
           },
           "speech": {
             "speed": 1.0,
@@ -207,13 +182,13 @@
             "pitch": "medium"
           },
           "position": {
-            "vertical": "bottom",
+            "vertical": "middle",
             "horizontal": "left"
           },
-          "bounding_box": "778:150:244:132"
+          "bounding_box": "494:307:107:80"
         },
         {
-          "sequence": 6,
+          "sequence": 5,
           "panel_id": "page_000_panel_03",
           "text": "The only reason this kingdom can exist...",
           "speaker": "UNKNOWN",
@@ -224,7 +199,7 @@
             "intensity": 0.7,
             "stability": 0.8,
             "style": 0.3,
-            "description": "Stating the reason for the kingdom's existence."
+            "description": "Somber statement."
           },
           "speech": {
             "speed": 1.0,
@@ -235,7 +210,32 @@
             "vertical": "top",
             "horizontal": "right"
           },
-          "bounding_box": "644:747:240:132"
+          "bounding_box": "659:692:169:130"
+        },
+        {
+          "sequence": 6,
+          "panel_id": "page_000_panel_03",
+          "text": "is because the sorcery emperor is here",
+          "speaker": "UNKNOWN",
+          "speaker_gender": "Unknown",
+          "time_gap_before_s": 0.5,
+          "emotion": {
+            "type": "determination",
+            "intensity": 0.8,
+            "stability": 0.8,
+            "style": 0.4,
+            "description": "Stating a reason with conviction."
+          },
+          "speech": {
+            "speed": 1.0,
+            "volume": 1.0,
+            "pitch": "medium"
+          },
+          "position": {
+            "vertical": "bottom",
+            "horizontal": "left"
+          },
+          "bounding_box": "776:320:184:147"
         }
       ]
     }

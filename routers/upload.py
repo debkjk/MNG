@@ -2,9 +2,10 @@ from fastapi import APIRouter, UploadFile, File, HTTPException, status, Backgrou
 from services.db_service import create_job, update_job_status
 from services.pdf_processor import convert_pdf_to_images, validate_pdf
 from services.gemini_service import process_manga_pages
-from services.tts_service import generate_audio_tracks
-# Uncomment the line below to use MOCK TTS (for testing without ElevenLabs)
-# from services.tts_service_mock import generate_audio_tracks_mock as generate_audio_tracks
+from services.rapidapi_tts_service import generate_audio_tracks  # Using RapidAPI TTS (high quality)
+# Old services (backup):
+# from services.tts_service import generate_audio_tracks  # pyttsx3 (robotic)
+# from services.tts_service_mock import generate_audio_tracks_mock as generate_audio_tracks  # Mock
 from services.video_generator import create_manga_video
 from pathlib import Path
 import shutil
